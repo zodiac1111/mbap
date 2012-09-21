@@ -65,25 +65,39 @@ private://输入验证
 				 ,int &reg_quantity)const;
 	bool verify_reg_quantity(const struct mb_write_req_pdu request_pdu
 				 ,int &reg_quantity)const;
-	int make_excep_msg(struct mbap_head &respond_mbap,
-			mb_excep_rsp_pdu &excep_respond_pdu,
-			    u8 func_code, u8 exception_code)const;
-	int make_read_msg( const struct mbap_head request_mbap
+	//构建返回报文 0x06
+	int make_msg( const struct mbap_head request_mbap
 		      ,const struct mb_read_req_pdu read_req_pdu
 		      ,struct mbap_head &rsp_mbap
 		      ,struct mb_read_rsp_pdu &respond_pdu
-		      ,u8 pdu_dat[])const;//构建返回报文
-	//从站 Response
+		      ,u8 pdu_dat[])const;
+	//构建返回报文 0x10
+	int make_msg( const struct mbap_head request_mbap
+		      ,const struct mb_write_req_pdu read_req_pdu
+		      ,struct mbap_head &rsp_mbap
+		      ,struct mb_write_rsp_pdu  &respond_pdu)const;
+	int make_msg_excep(struct mbap_head &respond_mbap,
+			   mb_excep_rsp_pdu &excep_respond_pdu,
+			   u8 func_code, u8 exception_code)const;
+	//发送异常回复
 	int send_excep_response(void);
-	int send_read_response(void) ;
+	//发送正常回复,重载
+	int send_response(const mbap_head response_mbap
+			  ,const mb_read_rsp_pdu response_pdu
+			  ,const rsp_dat pdu_dat[],
+			  struct TransReceiveBuf &transBuf) const;
+	int send_response(const struct mbap_head response_mbap
+				 ,const mb_write_rsp_pdu response_pdu
+				 ,struct TransReceiveBuf transBuf)const;
 private://各种打印:	mbap头, 请求pdu
-	void print_mbap( const mbap_head mbap)const;
+	void print_mbap( const mbap_head mbap)const;// 0x06 adn 0x10
 	void print_req_pdu(const mb_read_req_pdu request_pdu)const;//read请求
-	void print_req_pdu(const mb_write_req_pdu request_pdu)const;//write
+	void print_req_pdu(const mb_write_req_pdu request_pdu)const;//write x010
 	//		返回响应1 / 响应2
-	void print_rsp_pdu(const mb_read_rsp_pdu excep_respond_pdu)const;//响应1
-	void print_pdu_dat(const u8 pdu_dat[],u8 bytecount)const;//响应1
-	void print_excep_rsp_pdu(const mb_excep_rsp_pdu excep_respond_pdu)const;//响应2
+	void print_rsp_pdu(const mb_read_rsp_pdu respond_pdu)const;//0x06
+	void print_rsp_pdu(const mb_write_rsp_pdu respond_pdu)const;//0x10
+	void print_rsp_pdu(const mb_excep_rsp_pdu excep_respond_pdu)const;//异常
+	void print_pdu_dat(const u8 pdu_dat[],u8 bytecount)const;//0x06/0x10数据体
 private://实用函数 将各种类型转换成为 16位modbus寄存器类型
 	void dat2mbreg(u16 reg[2],const unsigned int dat32) const;
 	void dat2mbreg(u16 reg[2],const signed int  dat32) const;

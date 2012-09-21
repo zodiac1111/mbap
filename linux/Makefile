@@ -7,7 +7,7 @@ SOURCE  =       ../src/mbap.cpp
 wflags  = -O -Wall -Wfloat-equal -Wshadow -Wconversion  -pedantic -ansi \
 		-Wmissing-declarations -Wundef -Wuninitialized -Wcast-align \
 		-Wsign-compare -Wcast-qual -Wwrite-strings -Waggregate-return \
-		-Woverloaded-virtual
+		-Woverloaded-virtual -Werror
 # -Wpacked -Wpadded 用于最好的检测结构体内存对齐问题
 # -Wunreachable-code 死代码
 debugflag= -g 
