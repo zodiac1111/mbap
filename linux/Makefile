@@ -4,7 +4,7 @@ LIBS    =       -L$(LIB) -lsys_utl
 CXX	= arm-linux-g++
 NAME    =       mbap
 SOURCE  =       ../src/mbap.cpp
-wflags  = -Wall -Wfloat-equal -Wshadow -Wconversion -Winline -pedantic -ansi \
+wflags  = -O -Wall -Wfloat-equal -Wshadow -Wconversion  -pedantic -ansi \
 		-Wmissing-declarations -Wundef -Wuninitialized -Wcast-align \
 		-Wsign-compare -Wcast-qual -Wwrite-strings -Waggregate-return \
 		-Woverloaded-virtual
@@ -14,5 +14,8 @@ debugflag= -g
 all:$(NAME)
 $(NAME):$(SOURCE)
 	$(CXX) $(LDFALGS) $(CXXFLAGS) -shared $(MARCO) $(INCS) $^ -o $(LIB)/lib$@.so $(LIBS) $(wflags) $(debugflag)
+#ÉÏ´«
+	./upload.sh
+
 clean:
 	rm -rf $(LIB)/libmbap.so
