@@ -99,7 +99,8 @@ int Cmbap::ReciProc(void)
 	//验证:功能码,
 	u8 funcode=readbuf[sizeof(req_mbap)];
 	if(verify_funcode(funcode)==false){
-		printf("\n"MB_PERFIX_ERR ERR_ILLEGAL_FUN_MSG);
+		printf("(%02X|NaN)\n",funcode);
+		printf(MB_PERFIX_ERR ERR_ILLEGAL_FUN_MSG);
 		printf(" function code: 0x%02X.\n",funcode);
 		this->make_msg_excep(rsp_mbap,excep_rsp_pdu,
 				     funcode,ERR_ILLEGAL_FUN);
@@ -125,7 +126,7 @@ int Cmbap::ReciProc(void)
 			return -3;
 		}
 		//构造数据 m_meterData 中复制数据到 reg-table
-		if(this->map_dat2reg(this->reg_table,this-> m_meterData)==0 ){
+		if(this->map_dat2reg(this->reg_table,this-> m_meterData) != 0 ){
 			// 执行异常
 			this->make_msg_excep(rsp_mbap,excep_rsp_pdu,
 					     read_req_pdu.func_code,
@@ -148,13 +149,25 @@ int Cmbap::ReciProc(void)
 	case MB_FUN_W_MULTI_REG://写多个寄存器 流程:参考文档[3].p31
 		memcpy(&write_req_pdu,&readbuf[0]+sizeof(req_mbap)//pdu
 		       ,sizeof(write_req_pdu));
+#ifdef SHOW_RECI_MSG
+		print_req_pdu(write_req_pdu);
+		fflush(stdout);
+#endif
+		verify_req= verify_req_pdu(write_req_pdu,errcode);
+		if(verify_req==false){
+			//验证错误
+			this->make_msg_excep(rsp_mbap,excep_rsp_pdu,
+					     write_req_pdu.func_code,errcode);
+			//发送
+			this->send_excep_response();
+			return -3;
+		}
 		//pdu-dat(set reg as these values)
 		memcpy(&ppdu_dat,
 		       &readbuf[0]+sizeof(req_mbap)+sizeof(write_req_pdu),
 		       write_req_pdu.byte_count);
 		//
 #ifdef SHOW_RECI_MSG
-		print_req_pdu(write_req_pdu);
 		print_pdu_dat(ppdu_dat, write_req_pdu.byte_count);
 		printf("\n");
 #endif
@@ -386,13 +399,13 @@ bool Cmbap:: verify_req_pdu(const struct mb_read_req_pdu request_pdu,
 {
 	int reg_quantity; int start_addr;int end_addr;
 	if(verify_reg_quantity(request_pdu,reg_quantity)==false){
-		printf(MB_PERFIX_ERR ERR_ILLEGAL_DATA_VALUE_MSG);
+		printf("\n"MB_PERFIX_ERR ERR_ILLEGAL_DATA_VALUE_MSG);
 		printf(" reg_quantity=0x%04X.\n",reg_quantity);
 		errcode=ERR_ILLEGAL_DATA_VALUE;
 		return false;
 	}
 	if(verify_reg_addr(request_pdu,start_addr,end_addr)==false){
-		printf(MB_PERFIX"ERR: "ERR_ILLEGAL_DATA_ADDRESS_MSG);
+		printf("\n"MB_PERFIX_ERR ERR_ILLEGAL_DATA_ADDRESS_MSG);
 		printf(" start_addr=0x%04X end_addr=0x%04X.\n",start_addr,end_addr);
 		errcode=ERR_ILLEGAL_DATA_ADDRESS;
 		return false;
@@ -404,13 +417,13 @@ bool Cmbap:: verify_req_pdu(const struct mb_write_req_pdu request_pdu,
 {
 	int reg_quantity; int start_addr;int end_addr;
 	if(verify_reg_quantity(request_pdu,reg_quantity)==false){
-		printf(MB_PERFIX_ERR ERR_ILLEGAL_DATA_VALUE_MSG);
+		printf("\n"MB_PERFIX_ERR ERR_ILLEGAL_DATA_VALUE_MSG);
 		printf(" reg_quantity=0x%04X.\n",reg_quantity);
 		errcode=ERR_ILLEGAL_DATA_VALUE;
 		return false;
 	}
 	if(verify_reg_addr(request_pdu,start_addr,end_addr)==false){
-		printf(MB_PERFIX"ERR: "ERR_ILLEGAL_DATA_ADDRESS_MSG);
+		printf("\n"MB_PERFIX_ERR ERR_ILLEGAL_DATA_ADDRESS_MSG);
 		printf(" start_addr=0x%04X end_addr=0x%04X.\n",start_addr,end_addr);
 		errcode=ERR_ILLEGAL_DATA_ADDRESS;
 		return false;
@@ -464,6 +477,10 @@ bool Cmbap::verify_reg_quantity(const struct mb_write_req_pdu request_pdu
 {
 	reg_quantity=request_pdu.reg_quantity_hi*255+request_pdu.reg_quantity_lo;
 	if(reg_quantity<0x0001 || reg_quantity>0x007B){
+		return false;
+	}
+	if(request_pdu.byte_count != (reg_quantity<<1) ){
+		printf("cnt=%d quan= %d",request_pdu.byte_count,reg_quantity);
 		return false;
 	}
 	return true;
