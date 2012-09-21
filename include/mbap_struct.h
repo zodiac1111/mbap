@@ -30,7 +30,8 @@ typedef unsigned char rsp_dat;
 //(0x2B/0x0E) Read Device Identification
 
 //******************* Òì³£Öµ 1×Ö½Ú *******************
-#define ERR_ILLEGAL_FUN			0x01
+//#define ERR_ILLEGAL_FUN			0x01
+const unsigned char ERR_ILLEGAL_FUN = 0x01;
 #define ERR_ILLEGAL_DATA_ADDRESS	0x02
 #define ERR_ILLEGAL_DATA_VALUE		0x03
 #define ERR_SLAVE_DEVICE_FAILURE	0x04

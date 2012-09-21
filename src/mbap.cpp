@@ -26,15 +26,15 @@ extern "C" CProtocol *CreateCProto_Cmbap(void)
 
 Cmbap::Cmbap()
 {
-//	printf(MB_PERFIX"construct class\n");
-//	r[0]=&(m_meterData[0].Flag_Meter); //int
-//	r[4]=&(m_meterData[0].FLAG_LP); //char
-//	r[5]=&(m_meterData[0].FLAG_TIME); //char
-//	r[6]=&(m_meterData[0].m_iTOU[0]); //float
-//	//r[0]=&meterData[0].Flag_Meter;
-//	m_meterData[0].Flag_Meter=12345678;
-//	printf
-//	*(int *)r[0]=87654321;
+	//	printf(MB_PERFIX"construct class\n");
+	//	r[0]=&(m_meterData[0].Flag_Meter); //int
+	//	r[4]=&(m_meterData[0].FLAG_LP); //char
+	//	r[5]=&(m_meterData[0].FLAG_TIME); //char
+	//	r[6]=&(m_meterData[0].m_iTOU[0]); //float
+	//	//r[0]=&meterData[0].Flag_Meter;
+	//	m_meterData[0].Flag_Meter=12345678;
+	//	printf
+	//	*(int *)r[0]=87654321;
 
 }
 
@@ -147,15 +147,14 @@ int Cmbap::ReciProc(void)
 }
 //构造异常返回报文
 int Cmbap::make_excep_msg(struct mbap_head &respond_mbap,
-			  struct mb_excep_rsp_pdu excep_respond_pdu,
-			  u8 func_code,
-			  u8 exception_code)
+			  struct mb_excep_rsp_pdu &excep_respond_pdu,
+			  u8 func_code, u8 exception_code) const
 {
 	memcpy(&respond_mbap,&req_mbap,sizeof(req_mbap));
 	respond_mbap.len_lo=sizeof(respond_mbap.unitindet)
 			+sizeof(excep_respond_pdu);
-	excep_rsp_pdu.exception_func_code=u8(func_code+0x80);
-	excep_rsp_pdu.exception_code=exception_code;
+	excep_respond_pdu.exception_func_code=u8(func_code+0x80);
+	excep_respond_pdu.exception_code=exception_code;
 	return 0;
 }
 
@@ -220,7 +219,7 @@ int Cmbap::make_read_msg( const struct mbap_head request_mbap
 			  ,const struct mb_read_req_pdu request_pdu
 			  ,struct mbap_head &respond_mbap
 			  ,struct mb_read_rsp_pdu &respond_pdu
-			  ,u8 pdu_dat[255])
+			  ,u8 pdu_dat[255])const
 {
 	int i; //构造前的准备工作
 	int start_addr=request_pdu.start_addr_hi*256+request_pdu.start_addr_lo;
@@ -298,7 +297,7 @@ bool Cmbap::verify_mbap(const struct mbap_head request_mbap) const
 	返回值	: true:验证通过	fasle:不合法
 */
 bool Cmbap:: verify_req_pdu(const struct mb_read_req_pdu request_pdu,
-			    u8 &errcode)
+			    u8 &errcode) const
 {
 	int reg_quantity; int start_addr;int end_addr;
 	if(verify_reg_quantity(request_pdu,reg_quantity)==false){
@@ -381,32 +380,32 @@ bool Cmbap::verify_reg_addr(const struct mb_read_req_pdu request_pdu,
 
 /********************* 一系列数据格式转换函数 **************************/
 //将32位 in t型数据 转化成为 2个 modbus寄存器(16位)的形式
-inline void Cmbap::dat2mbreg(u16 reg[2],const unsigned int dat32)
+inline void Cmbap::dat2mbreg(u16 reg[2],const unsigned int dat32) const
 {
 	reg[0]=u16((dat32 & 0x0000FFFF)>>0); //低2字节在前(这个顺序是modbus决定的)
 	reg[1]=u16((dat32 & 0xFFFF0000)>>16);//高2字节在后
 }
 //将32位 in t型数据 转化成为 2个 modbus寄存器(16位)的形式
-inline void Cmbap::dat2mbreg(u16 reg[2],const signed int dat32)
+inline void Cmbap::dat2mbreg(u16 reg[2],const signed int dat32) const
 {
 	reg[0]=u16((dat32 & 0x0000FFFF)>>0); //低2字节在前(这个顺序是modbus决定的)
 	reg[1]=u16((dat32 & 0xFFFF0000)>>16);//高2字节在后
 }
 //将32位 float 型数据 转化保存在 2个 modbus 寄存器(16位)中
-inline void Cmbap::dat2mbreg(u16 reg[2],const float float32)
+inline void Cmbap::dat2mbreg(u16 reg[2],const float float32) const
 {
 	//IEEE 754 float 格式,在线转换 http://babbage.cs.qc.cuny.edu/IEEE-754/
 	reg[0]=u16(( *(int *)&float32 & 0x0000FFFF)>>0);
 	reg[1]=u16(( *(int *)&float32 & 0xFFFF0000)>>16);
 }
 //将16位 short 型数据 转化成为 1个 modbus寄存器(16位)的形式
-inline void Cmbap::dat2mbreg(u16 reg[1],const short dat16)
+inline void Cmbap::dat2mbreg(u16 reg[1],const short dat16) const
 {
 	reg[0]=dat16;
 }
 //将 2 个 8位 char 数据 合成成为 1个 modbus寄存器(16位)的形式
 inline void Cmbap::dat2mbreg(u16 reg[1]
-			     ,const char high_byte,const char low_byte)
+			     ,const char high_byte,const char low_byte) const
 {
 	reg[0]=u16( (high_byte<<8) + low_byte) ;
 }
@@ -440,7 +439,8 @@ inline void Cmbap::print_excep_rsp_pdu(
 	       ,excep_respond_pdu.exception_code);
 }
 //打印响应pdu
-inline void Cmbap::print_rsp_pdu(const struct mb_read_rsp_pdu excep_respond_pdu) const
+inline void Cmbap::print_rsp_pdu(const struct mb_read_rsp_pdu excep_respond_pdu)
+const
 {
 	printf("(%02X|%02X)"
 	       ,excep_respond_pdu.func_code
@@ -464,10 +464,10 @@ inline void Cmbap::print_pdu_dat( const u8 pdu_dat[], u8 bytecount)const
 	输出:	u16  reg_table[0xFFFF]
 */
 int Cmbap::map_dat2reg(u16  reg_tbl[0xFFFF]
-#ifdef REG_DAT_DEBUG
-		       ,stMeter_Run_data meterData[])
+		       #ifdef REG_DAT_DEBUG
+		       ,stMeter_Run_data meterData[]) const
 #else
-		       ,const stMeter_Run_data meterData[])
+		       ,const stMeter_Run_data meterData[]) const
 #endif
 //由于 REG_DAT_DEBUG 需要修改结构成员来调试,所以不使用 const 限制
 {
