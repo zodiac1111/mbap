@@ -15,11 +15,7 @@
 #include "sys_utl.h"
 #include "log.h"
 #include "mbap.h"
-// 调试选项:
-#define REG_DAT_DEBUG //强制设置结构体数据,查看寄存器数据(和网络传输)正确性
-#define SHOW_RECI_MSG //在终端显示接收到 消息(报文)
-#define SHOW_SEND_MSG //在终端显示 发送的 消息(报文)
-#define SHOW_SEND_ERR_MSG //在终端显示 发送的 异常 消息(报文)
+
 
 /***************************** 接口 ***********************/
 extern "C" CProtocol *CreateCProto_Cmbap(void)
@@ -468,7 +464,11 @@ inline void Cmbap::print_pdu_dat( const u8 pdu_dat[], u8 bytecount)const
 	输出:	u16  reg_table[0xFFFF]
 */
 int Cmbap::map_dat2reg(u16  reg_tbl[0xFFFF]
-		       ,/*const*/ stMeter_Run_data meterData[])
+#ifdef REG_DAT_DEBUG
+		       ,stMeter_Run_data meterData[])
+#else
+		       ,const stMeter_Run_data meterData[])
+#endif
 //由于 REG_DAT_DEBUG 需要修改结构成员来调试,所以不使用 const 限制
 {
 	int i;

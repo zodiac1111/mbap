@@ -18,6 +18,11 @@
 extern "C" CProtocol *CreateCProto_Cmbap(void);
 //libmbap 定义的错误消息
 //extern stMeter_Run_data m_meterData[MAXMETER];
+// 调试选项:
+//#define REG_DAT_DEBUG //强制设置结构体数据,用于寄存器数据(和网络传输)调试
+#define SHOW_RECI_MSG //在终端显示接收到 消息(报文)
+#define SHOW_SEND_MSG //在终端显示 发送的 消息(报文)
+#define SHOW_SEND_ERR_MSG //在终端显示 发送的 异常 消息(报文)
 //mbap规约
 class Cmbap :public CProtocol
 {
@@ -78,6 +83,10 @@ private://实用函数 将各种类型转换成为 16位modbus寄存器类型
 	void dat2mbreg(u16 reg[2],const float float32);
 	void dat2mbreg(u16 reg[1],const short dat16);
 	void dat2mbreg(u16 reg[1],const char high_byte,const char low_byte);
+#ifdef REG_DAT_DEBUG
 	int map_dat2reg(u16 reg_tbl[0xFFFF],stMeter_Run_data meterData[]);
+#else
+	int map_dat2reg(u16 reg_tbl[0xFFFF],const stMeter_Run_data meterData[]);
+#endif
 };
 #endif //__MBAP_H__

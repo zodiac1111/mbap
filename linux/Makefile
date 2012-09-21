@@ -14,8 +14,5 @@ debugflag= -g
 all:$(NAME)
 $(NAME):$(SOURCE)
 	$(CXX) $(LDFALGS) $(CXXFLAGS) -shared $(MARCO) $(INCS) $^ -o $(LIB)/lib$@.so $(LIBS) $(wflags) $(debugflag)
-#ÉÏ´«
-	./upload.sh
-
 clean:
 	rm -rf $(LIB)/libmbap.so
