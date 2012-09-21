@@ -192,7 +192,6 @@ int Cmbap::send_read_response(void)
 	printf("\n");
 #endif
 	//响应返回 send msg (to m_transBuf.m_transceiveBuf 数组)
-
 	memcpy(&m_transBuf.m_transceiveBuf[0]	//mbap
 	       ,&rsp_mbap,sizeof(rsp_mbap));//
 	memcpy(&m_transBuf.m_transceiveBuf[0]+sizeof(rsp_mbap)//pdu
