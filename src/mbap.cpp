@@ -61,7 +61,6 @@ int Cmbap::ReciProc(void)
 	unsigned short  len=0;
 	//TCP MODBUS ADU = 253 bytes + MBAP (7 bytes) = 260 bytes.
 	u8 readbuf[260];
-	bool normal_response=false;//指示响应 为 正常响应
 	bool verify_req=false;
 	u8 errcode=0;
 	//0. 接收
@@ -116,13 +115,12 @@ int Cmbap::ReciProc(void)
 			return -3;
 		}
 		//正常返回
-		normal_response=true;
 		//构造数据 m_meterData 中复制数据到 reg-table
 		this->map_dat2reg(this->reg_table,this-> m_meterData);
 		//构造报文
 		if(make_read_msg(this->req_mbap,this->read_req_pdu
-				 ,this->rsp_mbap,this->read_rsp_pdu,this->ppdu_dat)
-				!= 0){
+				 ,this->rsp_mbap,this->read_rsp_pdu
+				 ,this->ppdu_dat) != 0){
 			printf(MB_ERR_PERFIX"make msg\n");
 			return -4;
 		}
@@ -130,7 +128,8 @@ int Cmbap::ReciProc(void)
 		this->send_read_response();
 		break;
 	case MB_FUN_W_MULTI_REG://写多个寄存器
-		memcpy(&write_req_pdu,&readbuf[0]+sizeof(req_mbap),sizeof(write_req_pdu));
+		memcpy(&write_req_pdu,&readbuf[0]+sizeof(req_mbap)
+		       ,sizeof(write_req_pdu));
 		memcpy(&ppdu_dat,
 		       &readbuf[0]+sizeof(req_mbap)+sizeof(write_req_pdu),
 		       write_req_pdu.byte_count);
@@ -139,8 +138,6 @@ int Cmbap::ReciProc(void)
 		return -4;
 		break;
 	}
-
-
 	return 0;
 }
 //构造异常返回报文
@@ -178,8 +175,7 @@ int Cmbap::send_excep_response(void)
 }
 
 /*	发送报文(功能码 0x06)
-	输入: normal_response(bool)是否为 正常返回报文
-		成员变量 mbap,响应pdu,响应pdu-dat
+	输入:
 	输出: m_transBuf(struct)	发送的报文.
 */
 int Cmbap::send_read_response(void)
