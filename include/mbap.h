@@ -20,7 +20,7 @@ extern "C" CProtocol *CreateCProto_Cmbap(void);
 //libmbap 定义的错误消息
 //extern stMeter_Run_data m_meterData[MAXMETER];
 // 调试选项:
-#define REG_DAT_DEBUG //强制设置结构体数据,用于寄存器数据(和网络传输)调试
+//#define REG_DAT_DEBUG //强制设置结构体数据,用于寄存器数据(和网络传输)调试
 #define SHOW_RECI_MSG //在终端显示接收到 消息(报文)
 #define SHOW_SEND_MSG //在终端显示 发送的 消息(报文)
 #define SHOW_SEND_ERR_MSG //在终端显示 发送的 异常 消息(报文)

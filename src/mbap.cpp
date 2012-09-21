@@ -172,6 +172,7 @@ int Cmbap::ReciProc(void)
 		printf("\n");
 #endif
 		//写寄存器操作
+		//m_meterData[0].Flag_Meter=123456;
 		//构造报文
 		if(make_msg(this->req_mbap,this->write_req_pdu
 			    ,this->rsp_mbap,this->write_rsp_pdu) != 0){
@@ -654,8 +655,8 @@ int Cmbap::map_dat2reg(u16  reg_tbl[0xFFFF]
 	printf(MB_PERFIX"dat debug: get (71)0x0047(char,char)= %X,%X \n"
 	       ,m_meterData[0].m_cPortplan,m_meterData[0].m_cProt);
 #endif
-	for (i=0;i<MAXMETER;i++){
-		//for (i=0;i<1;i++){
+	//for (i=0;i<MAXMETER;i++){
+	for (i=0;i<1;i++){
 		addr=(i<<8);//高字节表示表号,分辨各个不同的表,范围[0,MAXMETER]
 		//低字节表示各种数据,modbus寄存器16位,所以int型占用两个寄存器
 		/*0x0000*/	dat2mbreg(&reg_tbl[addr+0x00],meterData[i].Flag_Meter);
