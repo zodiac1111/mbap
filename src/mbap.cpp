@@ -60,7 +60,12 @@ void Cmbap::SendProc(void)
 /*	从站接收主站的接收函数:
 	该模式是传统modbus/串口和modbus/tcp都有的.
 	接收->分析->执行->返回 均由本函数实现
+	分析/验证:由 verify_* 函数完成
+	执行:	map_dat2reg
+	构造报文: make_*_msg
+	返回:		response_*
 */
+//TODO:将各种逻辑功能相同的函数重载
 int Cmbap::ReciProc(void)
 {
 	unsigned short  len=0;
@@ -76,7 +81,7 @@ int Cmbap::ReciProc(void)
 	copyfrom_buf(readbuf, &m_recvBuf, len);
 	//验证1 报文验证
 	if(verify_msg(readbuf,len)==false){
-		printf(MB_ERR_PERFIX"reci illegal message\n");
+		printf(MB_PERFIX_ERR"reci illegal message\n");
 		return -1;
 	}
 	syn_loopbuff_ptr(&m_recvBuf);//接收完成
@@ -86,13 +91,18 @@ int Cmbap::ReciProc(void)
 	if(this->verify_mbap(req_mbap) == false){
 		return -2;
 	}
+#ifdef SHOW_RECI_MSG
+	printf(MB_PERFIX"<<< Reci form master:");
+	print_mbap(req_mbap);
+	fflush(stdout);
+#endif
 	//验证:功能码,
 	u8 funcode=readbuf[sizeof(req_mbap)];
 	if(verify_funcode(funcode)==false){
-		printf(MB_PERFIX"<<< Reci form master:");
+
 		print_mbap(req_mbap);
 		printf("\n");
-		printf(MB_ERR_PERFIX ERR_ILLEGAL_FUN_MSG);
+		printf(MB_PERFIX_ERR ERR_ILLEGAL_FUN_MSG);
 		printf(" function code: 0x%02X.\n",funcode);
 		this->make_excep_msg(rsp_mbap,excep_rsp_pdu,
 				     funcode,ERR_ILLEGAL_FUN);
@@ -104,8 +114,6 @@ int Cmbap::ReciProc(void)
 		memcpy(&read_req_pdu,&readbuf[0]+sizeof(req_mbap)
 		       ,sizeof(read_req_pdu));
 #ifdef SHOW_RECI_MSG
-		printf(MB_PERFIX"<<< Reci form master:");
-		print_mbap(req_mbap);
 		print_req_pdu(read_req_pdu);
 		printf("\n");
 #endif
@@ -126,18 +134,25 @@ int Cmbap::ReciProc(void)
 		if(make_read_msg(this->req_mbap,this->read_req_pdu
 				 ,this->rsp_mbap,this->read_rsp_pdu
 				 ,this->ppdu_dat) != 0){
-			printf(MB_ERR_PERFIX"make msg\n");
+			printf(MB_PERFIX_ERR"make msg\n");
 			return -4;
 		}
 		//发送
 		this->send_read_response();
 		break;
-	case MB_FUN_W_MULTI_REG://写多个寄存器
-		memcpy(&write_req_pdu,&readbuf[0]+sizeof(req_mbap)
+	case MB_FUN_W_MULTI_REG://写多个寄存器 流程:参考文档[3].p31
+		memcpy(&write_req_pdu,&readbuf[0]+sizeof(req_mbap)//pdu
 		       ,sizeof(write_req_pdu));
+		//pdu-dat(set reg as these values)
 		memcpy(&ppdu_dat,
 		       &readbuf[0]+sizeof(req_mbap)+sizeof(write_req_pdu),
 		       write_req_pdu.byte_count);
+		//
+#ifdef SHOW_RECI_MSG
+		print_req_pdu(write_req_pdu);
+		print_pdu_dat(ppdu_dat, write_req_pdu.byte_count);
+		printf("\n");
+#endif
 		break;
 	default:
 		return -4;
@@ -252,7 +267,7 @@ int Cmbap::make_read_msg( const struct mbap_head request_mbap
 bool Cmbap::verify_msg(u8* recvBuf, unsigned short len) const
 {
 	if(len<(sizeof(struct mbap_head)+1 /*funcode*/)){
-		printf(MB_ERR_PERFIX"mbap msg len:%d is less than 7.\n",len);
+		printf(MB_PERFIX_ERR"mbap msg len:%d is less than 7.\n",len);
 		return false;
 	}
 	return true;
@@ -270,20 +285,20 @@ bool Cmbap::verify_mbap(const struct mbap_head request_mbap) const
 	//2. 协议: 0x0000 为 modbus
 	if(!(request_mbap.protocolhead_hi==0x00
 	     && request_mbap.protocolhead_lo==0x00)){
-		printf(MB_ERR_PERFIX"mbap protocol not modbus/tcp protocol.\n");
+		printf(MB_PERFIX_ERR"mbap protocol not modbus/tcp protocol.\n");
 		return false;
 	}
 	//3. 长度:
 	// verify 5th byte is zero (upper length byte = zero as length MUST be
 	// less than 256) 验证长度
 	if(request_mbap.len_hi != 0x00 ){
-		printf(MB_ERR_PERFIX"mbap the length of msg is too long.\n");
+		printf(MB_PERFIX_ERR"mbap the length of msg is too long.\n");
 		return false;
 	}
 	//4. 从站编号 [2,253]
 	//verify 6th byte is between 2 to 253. min cmd length is unit id
 	if(!(request_mbap.unitindet>=2 && request_mbap.unitindet<= 253)){
-		printf(MB_ERR_PERFIX"slave address (%d) is out of range.\n"
+		printf(MB_PERFIX_ERR"slave address (%d) is out of range.\n"
 		       ,request_mbap.unitindet);
 		return false;
 	}
@@ -301,7 +316,25 @@ bool Cmbap:: verify_req_pdu(const struct mb_read_req_pdu request_pdu,
 {
 	int reg_quantity; int start_addr;int end_addr;
 	if(verify_reg_quantity(request_pdu,reg_quantity)==false){
-		printf(MB_ERR_PERFIX ERR_ILLEGAL_DATA_VALUE_MSG);
+		printf(MB_PERFIX_ERR ERR_ILLEGAL_DATA_VALUE_MSG);
+		printf(" reg_quantity=0x%04X.\n",reg_quantity);
+		errcode=ERR_ILLEGAL_DATA_VALUE;
+		return false;
+	}
+	if(verify_reg_addr(request_pdu,start_addr,end_addr)==false){
+		printf(MB_PERFIX"ERR: "ERR_ILLEGAL_DATA_ADDRESS_MSG);
+		printf(" start_addr=0x%04X end_addr=0x%04X.\n",start_addr,end_addr);
+		errcode=ERR_ILLEGAL_DATA_ADDRESS;
+		return false;
+	}
+	return true;
+}
+bool Cmbap:: verify_req_pdu(const struct mb_write_req_pdu request_pdu,
+			    u8 &errcode) const
+{
+	int reg_quantity; int start_addr;int end_addr;
+	if(verify_reg_quantity(request_pdu,reg_quantity)==false){
+		printf(MB_PERFIX_ERR ERR_ILLEGAL_DATA_VALUE_MSG);
 		printf(" reg_quantity=0x%04X.\n",reg_quantity);
 		errcode=ERR_ILLEGAL_DATA_VALUE;
 		return false;
@@ -315,6 +348,7 @@ bool Cmbap:: verify_req_pdu(const struct mb_read_req_pdu request_pdu,
 	return true;
 }
 
+
 /*	输入验证 3-1
 	验证功能码
 	判断功能码是否非法,未实现的功能也是不合法
@@ -324,12 +358,17 @@ bool Cmbap:: verify_req_pdu(const struct mb_read_req_pdu request_pdu,
 bool Cmbap::verify_funcode(const u8  funcode) const
 {
 	switch (funcode){
+	case MB_FUN_R_COILS:
+		printf(MB_PERFIX_WARN
+		       "Function code: 0x01 read coils maybe on need \n");
+		return false;
+		break;
 	case MB_FUN_R_HOLD_REG:
 		return true;
 		break;
 	case MB_FUN_W_MULTI_REG: //TODO write funciton
-		printf(MB_ERR_PERFIX"function come soon.\n");
-		return false;
+		printf(MB_PERFIX_WARN"Function code: 0x10 is now debuging :-) \n");
+		return true;
 		break;
 		/* .add funcode here */
 	default://其他功能码不被支持
@@ -344,10 +383,18 @@ bool Cmbap::verify_funcode(const u8  funcode) const
 bool Cmbap::verify_reg_quantity(const struct mb_read_req_pdu request_pdu
 				,int &reg_quantity)const
 {
-	bool ret=true;
 	reg_quantity=request_pdu.reg_quantity_hi*255+request_pdu.reg_quantity_lo;
 	if(reg_quantity<0x0001 || reg_quantity>0x007D){
-		ret=false;
+		return false;
+	}
+	return true;
+}
+bool Cmbap::verify_reg_quantity(const struct mb_write_req_pdu request_pdu
+				,int &reg_quantity)const
+{
+	reg_quantity=request_pdu.reg_quantity_hi*255+request_pdu.reg_quantity_lo;
+	if(reg_quantity<0x0001 || reg_quantity>0x007B){
+		return false;
 	}
 	return true;
 }
@@ -358,26 +405,32 @@ bool Cmbap::verify_reg_quantity(const struct mb_read_req_pdu request_pdu
 bool Cmbap::verify_reg_addr(const struct mb_read_req_pdu request_pdu,
 			    int &start_addr,int &end_addr )const
 {
-	int reg_quantity=0;bool ret=true;
+	int reg_quantity=0;
 	reg_quantity=request_pdu.reg_quantity_hi*255+request_pdu.reg_quantity_lo;
 	start_addr=request_pdu.start_addr_hi*255+request_pdu.start_addr_lo;
 	end_addr=start_addr+reg_quantity;
-	switch(request_pdu.func_code){
-	case MB_FUN_R_HOLD_REG:
-		// 起始和结束地址[0x0000,0xFFFF]
-		if(start_addr<0x0000 || start_addr >0xFFFF
-				|| end_addr<0x0000 || end_addr >0xFFFF ){
-			ret= false;
-		}
-		break;
-		//case other function code
-	default:
-		ret= false;
-		break;
+	// 起始和结束地址[0x0000,0xFFFF]
+	if(start_addr<0x0000 || start_addr >0xFFFF
+			|| end_addr<0x0000 || end_addr >0xFFFF ){
+		return false;
 	}
-	return ret;
+	return true;
 }
+bool Cmbap::verify_reg_addr(const struct mb_write_req_pdu request_pdu,
+			    int &start_addr,int &end_addr )const
+{
+	int reg_quantity=0;
+	reg_quantity=request_pdu.reg_quantity_hi*255+request_pdu.reg_quantity_lo;
+	start_addr=request_pdu.start_addr_hi*255+request_pdu.start_addr_lo;
+	end_addr=start_addr+reg_quantity;
+	// 起始和结束地址[0x0000,0xFFFF]
+	if(start_addr<0x0000 || start_addr >0xFFFF
+			|| end_addr<0x0000 || end_addr >0xFFFF ){
+		return false;
+	}
 
+	return true;
+}
 /********************* 一系列数据格式转换函数 **************************/
 //将32位 in t型数据 转化成为 2个 modbus寄存器(16位)的形式
 inline void Cmbap::dat2mbreg(u16 reg[2],const unsigned int dat32) const
@@ -429,6 +482,17 @@ inline void Cmbap::print_req_pdu(const struct mb_read_req_pdu request_pdu)const
 	       ,request_pdu.start_addr_lo
 	       ,request_pdu.reg_quantity_hi
 	       ,request_pdu.reg_quantity_lo);
+}
+//打印请求pdu
+inline void Cmbap::print_req_pdu(const struct mb_write_req_pdu request_pdu)const
+{
+	printf("(%02X|%02X %02X|%02X %02X|%02X)"
+	       ,request_pdu.func_code
+	       ,request_pdu.start_addr_hi
+	       ,request_pdu.start_addr_lo
+	       ,request_pdu.reg_quantity_hi
+	       ,request_pdu.reg_quantity_lo
+	       ,request_pdu.byte_count);
 }
 //打印异常响应pdu
 inline void Cmbap::print_excep_rsp_pdu(
@@ -591,3 +655,11 @@ int Cmbap::map_dat2reg(u16  reg_tbl[0xFFFF]
 	//printf(MB_PERFIX"map dat to reg,ok.\n");
 	return 0;
 }
+/* 参考文档:
+	1. refer: modbus/TCP http://www.simplymodbus.ca/TCP.htm
+	2. http://www.electroind.com/pdf/Modbus_messaging_on_TCPIP_implementation_guide_V11.pdf
+	3. http://www.modbus.org/docs/Modbus_Application_Protocol_V1_1b.pdf (官网)
+	4. http://www.modbus.org/docs/Modbus_Messaging_Implementation_Guide_V1_0b.pdf
+	5. http://www.modbus.org/specs.php (说明书)
+	6. 从Modbus到透明就绪 华? 编著 第8章
+*/

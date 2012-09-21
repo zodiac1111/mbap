@@ -13,8 +13,9 @@
 #include "protocol.h"
 #include "mbap_struct.h"
 //显示mbap库消息的前缀.方便在显示中查看该库相关的信息.
-#define MB_PERFIX "[libmbap]"
-#define MB_ERR_PERFIX "[libmbap]ERR:"
+#define MB_PERFIX "[libmbap]"	//用于一般信息 如接收数据
+#define MB_PERFIX_WARN "[libmbap]Warning:"//用于提示 调试或建议信息
+#define MB_PERFIX_ERR "[libmbap]ERR:"	//用于提示 错误信息
 extern "C" CProtocol *CreateCProto_Cmbap(void);
 //libmbap 定义的错误消息
 //extern stMeter_Run_data m_meterData[MAXMETER];
@@ -53,10 +54,16 @@ private://输入验证
 	bool verify_mbap(const mbap_head request_mbap) const;
 	bool verify_req_pdu(const struct  mb_read_req_pdu request_pdu,
 			    u8 &errcode)const;
+	bool verify_req_pdu(const struct  mb_write_req_pdu request_pdu,
+			    u8 &errcode)const;
 	bool verify_funcode( u8 funcode)const;
 	bool verify_reg_addr(const struct mb_read_req_pdu request_pdu
 			     ,int &start_addr,int &end_addr)const;
+	bool verify_reg_addr(const struct mb_write_req_pdu request_pdu
+			     ,int &start_addr,int &end_addr)const;
 	bool verify_reg_quantity(const struct mb_read_req_pdu request_pdu
+				 ,int &reg_quantity)const;
+	bool verify_reg_quantity(const struct mb_write_req_pdu request_pdu
 				 ,int &reg_quantity)const;
 	int make_excep_msg(struct mbap_head &respond_mbap,
 			mb_excep_rsp_pdu &excep_respond_pdu,
@@ -70,8 +77,9 @@ private://输入验证
 	int send_excep_response(void);
 	int send_read_response(void) ;
 private://各种打印:	mbap头, 请求pdu
-	void print_mbap( const mbap_head mbap)  const ;
-	void print_req_pdu(const mb_read_req_pdu request_pdu) const;//请求
+	void print_mbap( const mbap_head mbap)const;
+	void print_req_pdu(const mb_read_req_pdu request_pdu)const;//read请求
+	void print_req_pdu(const mb_write_req_pdu request_pdu)const;//write
 	//		返回响应1 / 响应2
 	void print_rsp_pdu(const mb_read_rsp_pdu excep_respond_pdu)const;//响应1
 	void print_pdu_dat(const u8 pdu_dat[],u8 bytecount)const;//响应1

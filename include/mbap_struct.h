@@ -115,11 +115,11 @@ in Modbus TCP is:(modbus/tcp 报文)
 
 */
 /* 参考:
-	refer: modbus/TCP http://www.simplymodbus.ca/TCP.htm
-	http://www.electroind.com/pdf/Modbus_messaging_on_TCPIP_implementation_guide_V11.pdf
-	http://www.modbus.org/docs/Modbus_Application_Protocol_V1_1b.pdf (官网)
-	http://www.modbus.org/docs/Modbus_Messaging_Implementation_Guide_V1_0b.pdf
-	http://www.modbus.org/specs.php (说明书)
-	从Modbus到透明就绪 华? 编著 第8章
+	1. refer: modbus/TCP http://www.simplymodbus.ca/TCP.htm
+	2. http://www.electroind.com/pdf/Modbus_messaging_on_TCPIP_implementation_guide_V11.pdf
+	3. http://www.modbus.org/docs/Modbus_Application_Protocol_V1_1b.pdf (官网)
+	4. http://www.modbus.org/docs/Modbus_Messaging_Implementation_Guide_V1_0b.pdf
+	5. http://www.modbus.org/specs.php (说明书)
+	6. 从Modbus到透明就绪 华? 编著 第8章
 */
 #endif // MBAP_STRUCT_H
