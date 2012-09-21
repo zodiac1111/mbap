@@ -31,11 +31,11 @@ typedef unsigned char rsp_dat;
 
 //******************* 异常值 1字节 *******************
 //#define ERR_ILLEGAL_FUN			0x01
-const unsigned char ERR_ILLEGAL_FUN = 0x01;
-#define ERR_ILLEGAL_DATA_ADDRESS	0x02
-#define ERR_ILLEGAL_DATA_VALUE		0x03
-#define ERR_SLAVE_DEVICE_FAILURE	0x04
-#define ERR_SLAVE_DEVICE_BUSY		0x06
+const unsigned char ERR_ILLEGAL_FUN		=0x01;
+const unsigned char ERR_ILLEGAL_DATA_ADDRESS	=0x02;
+const unsigned char ERR_ILLEGAL_DATA_VALUE	=0x03;
+const unsigned char ERR_SLAVE_DEVICE_FAILURE	=0x04;
+const unsigned char ERR_SLAVE_DEVICE_BUSY	=0x06;
 //异常值描述文本:
 #define ERR_ILLEGAL_FUN_MSG		"Illegal Function Code"
 #define ERR_ILLEGAL_DATA_ADDRESS_MSG	"Illegal Date Address"
