@@ -17,18 +17,17 @@
 #define MB_ERR_PERFIX "[libmbap]ERR:"
 extern "C" CProtocol *CreateCProto_Cmbap(void);
 //libmbap 定义的错误消息
-
 //extern stMeter_Run_data m_meterData[MAXMETER];
 //mbap规约
 class Cmbap :public CProtocol
 {
 public:
-	void SendProc(void);
 	Cmbap();
 	~Cmbap();
-	void m_BroadcastTime(void);
+	void SendProc(void);
 	int ReciProc(void);
-	//virtual int Init(struct stPortConfig *tmp_portcfg);
+	void m_BroadcastTime(void);
+	//int Init(struct stPortConfig *tmp_portcfg);
 	/************************** 成员变量 ****************************/
 private:
 	//请求
@@ -43,6 +42,7 @@ private:
 	struct mb_excep_rsp_pdu excep_rsp_pdu;//异常响应体-头
 	//所有寄存器表 16位每个 共0xFFFF个
 	u16 reg_table[0xFFFF];
+	void * r[0xFFFF*2];//指向变量的指针
 	/************************** 成员函数 ****************************/
 private://输入验证
 	bool verify_msg(u8* m_recvBuf,unsigned short len) const;
@@ -72,7 +72,7 @@ private://各种打印:	mbap头, 请求pdu
 	void print_rsp_pdu(const mb_read_rsp_pdu excep_respond_pdu)const;//响应1
 	void print_pdu_dat(const u8 pdu_dat[],u8 bytecount)const;//响应1
 	void print_excep_rsp_pdu(const mb_excep_rsp_pdu excep_respond_pdu)const;//响应2
-private://实用函数
+private://实用函数 将各种类型转换成为 16位modbus寄存器类型
 	void dat2mbreg(u16 reg[2],const unsigned int dat32);
 	void dat2mbreg(u16 reg[2],const signed int  dat32);
 	void dat2mbreg(u16 reg[2],const float float32);

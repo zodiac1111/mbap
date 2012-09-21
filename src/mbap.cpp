@@ -30,7 +30,16 @@ extern "C" CProtocol *CreateCProto_Cmbap(void)
 
 Cmbap::Cmbap()
 {
-	printf(MB_PERFIX"construct class\n");
+//	printf(MB_PERFIX"construct class\n");
+//	r[0]=&(m_meterData[0].Flag_Meter); //int
+//	r[4]=&(m_meterData[0].FLAG_LP); //char
+//	r[5]=&(m_meterData[0].FLAG_TIME); //char
+//	r[6]=&(m_meterData[0].m_iTOU[0]); //float
+//	//r[0]=&meterData[0].Flag_Meter;
+//	m_meterData[0].Flag_Meter=12345678;
+//	printf
+//	*(int *)r[0]=87654321;
+
 }
 
 Cmbap::~Cmbap()
@@ -174,7 +183,7 @@ int Cmbap::send_excep_response(void)
 	return 0;
 }
 
-/*	发送报文(功能码 0x06)
+/*	发送报文(功能码 0x06) 所有结构都是对于 0x06功能的
 	输入:
 	输出: m_transBuf(struct)	发送的报文.
 */
@@ -193,7 +202,8 @@ int Cmbap::send_read_response(void)
 	memcpy(&m_transBuf.m_transceiveBuf[0]+sizeof(rsp_mbap)//pdu
 	       ,&read_rsp_pdu,sizeof(read_rsp_pdu));
 	//pdu-dat
-	memcpy(&m_transBuf.m_transceiveBuf[0]+sizeof(rsp_mbap)+sizeof(read_rsp_pdu)
+	memcpy(&m_transBuf.m_transceiveBuf[0]
+	       +sizeof(rsp_mbap)+sizeof(read_rsp_pdu)
 	       ,ppdu_dat,read_rsp_pdu.byte_count);
 	//trans count
 	m_transBuf.m_transCount=sizeof(rsp_mbap) //mbap
@@ -484,7 +494,7 @@ int Cmbap::map_dat2reg(u16  reg_tbl[0xFFFF]
 	       ,m_meterData[0].m_cPortplan,m_meterData[0].m_cProt);
 #endif
 	for (i=0;i<MAXMETER;i++){
-	//for (i=0;i<1;i++){
+		//for (i=0;i<1;i++){
 		addr=(i<<8);//高字节表示表号,分辨各个不同的表,范围[0,MAXMETER]
 		//低字节表示各种数据,modbus寄存器16位,所以int型占用两个寄存器
 		/*0x0000*/	dat2mbreg(&reg_tbl[addr+0x00],meterData[i].Flag_Meter);

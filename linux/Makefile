@@ -5,7 +5,7 @@ CXX	= arm-linux-g++
 NAME    =       mbap
 SOURCE  =       ../src/mbap.cpp
 wflags  = -Wall -Wfloat-equal -Wshadow -Wconversion -Winline -pedantic -ansi \
-		-Wmissing-declarations -Wundef -Wuninitialized -Wcomment -Wcast-align \
+		-Wmissing-declarations -Wundef -Wuninitialized -Wcast-align \
 		-Wsign-compare -Wcast-qual -Wwrite-strings -Waggregate-return \
 		-Woverloaded-virtual
 # -Wpacked -Wpadded 用于最好的检测结构体内存对齐问题
