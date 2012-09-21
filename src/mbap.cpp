@@ -179,7 +179,7 @@ int Cmbap::send_excep_response(void)
 }
 
 /*	发送报文(功能码 0x06) 所有结构都是对于 0x06功能的
-	输入:
+	输入: 类的成员变量
 	输出: m_transBuf(struct)	发送的报文.
 */
 int Cmbap::send_read_response(void)
