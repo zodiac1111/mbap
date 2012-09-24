@@ -20,10 +20,11 @@ extern "C" CProtocol *CreateCProto_Cmbap(void);
 //libmbap 定义的错误消息
 //extern stMeter_Run_data m_meterData[MAXMETER];
 // 调试选项:
-//#define REG_DAT_DEBUG //强制设置结构体数据,用于寄存器数据(和网络传输)调试
+#define REG_DAT_DEBUG //强制设置结构体数据,用于寄存器数据(和网络传输)调试
 #define SHOW_RECI_MSG //在终端显示接收到 消息(报文)
 #define SHOW_SEND_MSG //在终端显示 发送的 消息(报文)
 #define SHOW_SEND_ERR_MSG //在终端显示 发送的 异常 消息(报文)
+//#define READ_DATE_PAND_DBG //显示填充到寄存器的值
 //mbap规约
 class Cmbap :public CProtocol
 {
@@ -99,9 +100,12 @@ private://各种打印:	mbap头, 请求pdu
 	void print_rsp_pdu(const mb_excep_rsp_pdu excep_respond_pdu)const;//异常
 	void print_pdu_dat(const u8 pdu_dat[],u8 bytecount)const;//0x06/0x10数据体
 private://实用函数 将各种类型转换成为 16位modbus寄存器类型
-	void dat2mbreg(u16 reg[2],const unsigned int dat32) const;
-	void dat2mbreg(u16 reg[2],const signed int  dat32) const;
-	void dat2mbreg(u16 reg[2],const float float32) const;
+	void dat2mbreg_hi16bit(u16 reg[1],const unsigned int dat32) const;
+	void dat2mbreg_lo16bit(u16 reg[1],const unsigned int dat32) const;
+	void dat2mbreg_hi16bit(u16 reg[1],const signed int  dat32) const;
+	void dat2mbreg_lo16bit(u16 reg[1],const signed int  dat32) const;
+	void dat2mbreg_hi16bit(u16 reg[1],const float float32) const;
+	void dat2mbreg_lo16bit(u16 reg[1],const float float32) const;
 	void dat2mbreg(u16 reg[1],const short dat16) const;
 	void dat2mbreg(u16 reg[1],const char high_byte,const char low_byte) const;
 #ifdef REG_DAT_DEBUG
