@@ -113,6 +113,9 @@ private://实用函数 将各种类型转换成为 16位modbus寄存器类型
 	void dat2mbreg(u16 reg[1],const char high_byte,const char low_byte) const;
 	int map_dat2reg(u16 reg_tbl[0xFFFF],stMeter_Run_data meterData[]
 			, const mb_read_req_pdu request_pdu)const;
+	int map_reg2dat(u16  reg_tbl[0xFFFF]
+			       ,stMeter_Run_data meterData[]
+			       ,const struct mb_write_req_pdu request_pdu) const;
 
 };
 #endif //__MBAP_H__

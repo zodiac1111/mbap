@@ -126,7 +126,7 @@ int Cmbap::ReciProc(void)
 			return -3;
 		}
 		//构造数据 m_meterData 中复制数据到 reg-table
-		if(this->map_dat2reg(this->reg_table,this-> m_meterData) != 0 ){
+		if(this->map_dat2reg(this->reg_table,this-> m_meterData,read_req_pdu) != 0 ){
 			// 执行异常
 			this->make_msg_excep(rsp_mbap,excep_rsp_pdu,
 					     read_req_pdu.func_code,
@@ -646,7 +646,27 @@ inline void Cmbap::print_pdu_dat( const u8 pdu_dat[], u8 bytecount)const
 	}
 	printf("\b]");
 }
-
+int Cmbap::map_reg2dat(u16  reg_tbl[0xFFFF]
+		       ,stMeter_Run_data meterData[]
+		       ,const struct mb_write_req_pdu request_pdu) const
+{
+	u16 start_addr=u16((request_pdu.start_addr_hi<<8)+request_pdu.start_addr_lo);
+	unsigned char meter_no=u8((start_addr & 0xFF00)>>8);
+	unsigned char sub_id=u8((start_addr & 0xFF));
+	u16 end_addr=u16((request_pdu.reg_quantity_hi<<8)+request_pdu.reg_quantity_lo);
+	unsigned char meter_no_e=u8((end_addr & 0xFF00)>>8);
+	for(i=meter_no;i<meter_no_e;i++){ //循环 表号
+		addr=(i<<8);
+		switch(sub_id){ //每个表的 子寄存器地址
+		case 0x00:dat2mbreg_lo16bit(&reg_tbl[addr+0x00],meterData[i].Flag_Meter);
+			if((i<<8 & 0x00) ==end_addr) goto OK;
+		case 0x01:dat2mbreg_hi16bit(&reg_tbl[addr+0x01],meterData[i].Flag_Meter);
+			if((i<<8 & 0x01) ==end_addr) goto OK;
+		}
+	}
+OK:
+	return 0;
+}
 /*	将一些必要的数据从 stMeter_Run_data 结构体中复制(映射)到
 	reg_table 寄存器表以便读取这些数据
 	TODO: 目前主站请求一次,测复制全部变量到寄存器数组,应改进效率!
@@ -680,10 +700,9 @@ int Cmbap::map_dat2reg(u16  reg_tbl[0xFFFF]
 #endif
 	int i;
 	int addr;
-	int start_addr=request_pdu.start_addr_hi<<8+request_pdu.start_addr_lo;
-	int end_addr=request_pdu.reg_quantity_hi<<8+request_pdu.reg_quantity_lo;
 
-	//以下是低效版本:
+#if 1
+	//以下是低效版本:高效版本TODO
 	for (i=0;i<MAXMETER;i++) {
 	//for (i=0;i<1;i++){
 		addr=(i<<8);//高字节表示表号,分辨各个不同的表,范围[0,MAXMETER]
@@ -779,7 +798,7 @@ int Cmbap::map_dat2reg(u16  reg_tbl[0xFFFF]
 					  ,meterData[i].m_time[6],0);
 
 	}
-
+#endif
 //	for(i=0;i<10;i++)
 //		printf("%02X ",reg_tbl[i]);
 
