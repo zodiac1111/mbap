@@ -92,7 +92,7 @@ private://输入验证
 			  struct TransReceiveBuf &transBuf) const;
 	int send_response(const struct mbap_head response_mbap
 				 ,const mb_write_rsp_pdu response_pdu
-				 ,struct TransReceiveBuf transBuf)const;
+				 ,TransReceiveBuf &transBuf)const;
 private://各种打印:	mbap头, 请求pdu
 	void print_mbap( const mbap_head mbap)const;// 0x06 adn 0x10
 	void print_req_pdu(const mb_read_req_pdu request_pdu)const;//read请求

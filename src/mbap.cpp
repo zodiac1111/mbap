@@ -108,6 +108,7 @@ int Cmbap::ReciProc(void)
 	}
 	//根据功能码 判断 复制到不同的 请求pdu.
 	switch (funcode){
+	/******************************************************/
 	case MB_FUN_R_HOLD_REG ://读多个保持寄存器
 		memcpy(&read_req_pdu,&readbuf[0]+sizeof(req_mbap)
 		       ,sizeof(read_req_pdu));
@@ -146,6 +147,7 @@ int Cmbap::ReciProc(void)
 		this->send_response(rsp_mbap,read_rsp_pdu,
 				    &ppdu_dat[0],m_transBuf);
 		break;
+	/******************************************************/
 	case MB_FUN_W_MULTI_REG://写多个寄存器 流程:参考文档[3].p31
 		memcpy(&write_req_pdu,&readbuf[0]+sizeof(req_mbap)//pdu
 		       ,sizeof(write_req_pdu));
@@ -166,13 +168,16 @@ int Cmbap::ReciProc(void)
 		memcpy(&ppdu_dat,
 		       &readbuf[0]+sizeof(req_mbap)+sizeof(write_req_pdu),
 		       write_req_pdu.byte_count);
-		//
 #ifdef DBG_SHOW_RECI_MSG
 		print_pdu_dat(ppdu_dat, write_req_pdu.byte_count);
 		printf("\n");
 #endif
 		//写寄存器操作
-		//m_meterData[0].Flag_Meter=123456;
+		reg_table[0xfffb]=0x1234;
+		reg_table[0xfffc]=0x5678;
+		reg_table[0xfffd]=0x9abc;
+		reg_table[0xfffe]=0xdef0;
+		reg_table[0xffff]=u16((ppdu_dat[0]<<8)+ppdu_dat[1]);
 		//构造报文
 		if(make_msg(this->req_mbap,this->write_req_pdu
 			    ,this->rsp_mbap,this->write_rsp_pdu) != 0){
@@ -266,7 +271,7 @@ int Cmbap::send_response(const struct mbap_head response_mbap
 */
 int Cmbap::send_response(const struct mbap_head response_mbap
 			 ,const struct mb_write_rsp_pdu response_pdu
-			 ,struct TransReceiveBuf transBuf)const
+			 ,struct TransReceiveBuf &transBuf)const
 {
 #ifdef SHOW_SEND_MSG
 	printf(MB_PERFIX">>> Send  to  master:");
@@ -282,6 +287,14 @@ int Cmbap::send_response(const struct mbap_head response_mbap
 	//trans count
 	transBuf.m_transCount=sizeof(response_mbap) //mbap
 			+sizeof(response_pdu); //pdu
+//	printf("%02X %02X %02X %02X %02X %02X %02X cnt=%d \n",
+//	       transBuf.m_transceiveBuf[0],
+//	       transBuf.m_transceiveBuf[1],
+//	       transBuf.m_transceiveBuf[2],
+//	       transBuf.m_transceiveBuf[3],
+//	       transBuf.m_transceiveBuf[4],
+//	       transBuf.m_transceiveBuf[5],
+//	       transBuf.m_transceiveBuf[6],transBuf.m_transCount);
 	return 0 ;
 }
 
@@ -650,6 +663,7 @@ int Cmbap::map_reg2dat(u16  reg_tbl[0xFFFF]
 		       ,stMeter_Run_data meterData[]
 		       ,const struct mb_write_req_pdu request_pdu) const
 {
+	int i;int addr;
 	u16 start_addr=u16((request_pdu.start_addr_hi<<8)+request_pdu.start_addr_lo);
 	unsigned char meter_no=u8((start_addr & 0xFF00)>>8);
 	unsigned char sub_id=u8((start_addr & 0xFF));
@@ -798,6 +812,7 @@ int Cmbap::map_dat2reg(u16  reg_tbl[0xFFFF]
 					  ,meterData[i].m_time[6],0);
 
 	}
+
 #endif
 //	for(i=0;i<10;i++)
 //		printf("%02X ",reg_tbl[i]);
