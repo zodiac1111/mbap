@@ -91,7 +91,7 @@ int Cmbap::ReciProc(void)
 	if(this->verify_mbap(req_mbap) == false){
 		return -2;
 	}
-#ifdef SHOW_RECI_MSG
+#ifdef DBG_SHOW_RECI_MSG
 	printf(MB_PERFIX"<<< Reci form master:");
 	print_mbap(req_mbap);
 	fflush(stdout);
@@ -111,7 +111,7 @@ int Cmbap::ReciProc(void)
 	case MB_FUN_R_HOLD_REG ://读多个保持寄存器
 		memcpy(&read_req_pdu,&readbuf[0]+sizeof(req_mbap)
 		       ,sizeof(read_req_pdu));
-#ifdef SHOW_RECI_MSG
+#ifdef DBG_SHOW_RECI_MSG
 		print_req_pdu(read_req_pdu);
 		printf("\n");
 #endif
@@ -144,12 +144,12 @@ int Cmbap::ReciProc(void)
 		}
 		//发送
 		this->send_response(rsp_mbap,read_rsp_pdu,
-				    &ppdu_dat[255],m_transBuf);
+				    &ppdu_dat[0],m_transBuf);
 		break;
 	case MB_FUN_W_MULTI_REG://写多个寄存器 流程:参考文档[3].p31
 		memcpy(&write_req_pdu,&readbuf[0]+sizeof(req_mbap)//pdu
 		       ,sizeof(write_req_pdu));
-#ifdef SHOW_RECI_MSG
+#ifdef DBG_SHOW_RECI_MSG
 		print_req_pdu(write_req_pdu);
 		fflush(stdout);
 #endif
@@ -167,7 +167,7 @@ int Cmbap::ReciProc(void)
 		       &readbuf[0]+sizeof(req_mbap)+sizeof(write_req_pdu),
 		       write_req_pdu.byte_count);
 		//
-#ifdef SHOW_RECI_MSG
+#ifdef DBG_SHOW_RECI_MSG
 		print_pdu_dat(ppdu_dat, write_req_pdu.byte_count);
 		printf("\n");
 #endif
@@ -249,7 +249,15 @@ int Cmbap::send_response(const struct mbap_head response_mbap
 	transBuf.m_transCount=sizeof(response_mbap) //mbap
 			+sizeof(response_pdu) //pdu
 			+(response_pdu.byte_count); //pdu-dat
-	//printf("trancount=%d\n",transBuf.m_transCount);
+#ifdef DBG_send_response
+	int i;
+	printf("trancount=%d\n",transBuf.m_transCount);
+	printf("sizeof=%d,%d\n",sizeof(response_mbap),sizeof(response_pdu));
+	for(i=0;i<response_pdu.byte_count;i++){
+		printf("%02X ",pdu_dat[i]);
+	}
+	printf("\n");
+#endif
 	return 0 ;
 }
 /*	发送报文(功能码 0x06) 所有结构都是对于 0x06功能的
@@ -318,8 +326,8 @@ int Cmbap::make_msg( const struct mbap_head request_mbap
 		printf("%04X = %02X ,%02X\n",reg_table[start_addr+i],pdu_dat[i*2+0],pdu_dat[i*2+1]);
 #endif
 	}
-	printf("reg %02X ,%02X\n",pdu_dat[0],pdu_dat[1]);
-	printf("reg %02X ,%02X\n",pdu_dat[2],pdu_dat[3]);
+//	printf("reg %02X ,%02X\n",pdu_dat[0],pdu_dat[1]);
+//	printf("reg %02X ,%02X\n",pdu_dat[2],pdu_dat[3]);
 	return 0;
 }
 /*	构建响应 0x10 的返回的报文
@@ -641,39 +649,41 @@ inline void Cmbap::print_pdu_dat( const u8 pdu_dat[], u8 bytecount)const
 
 /*	将一些必要的数据从 stMeter_Run_data 结构体中复制(映射)到
 	reg_table 寄存器表以便读取这些数据
+	TODO: 目前主站请求一次,测复制全部变量到寄存器数组,应改进效率!
 	输入:	struct stMeter_Run_data m_meterData[MAXMETER]
 	输出:	u16  reg_table[0xFFFF]
 */
 int Cmbap::map_dat2reg(u16  reg_tbl[0xFFFF]
-#ifdef REG_DAT_DEBUG
-		       ,stMeter_Run_data meterData[]) const
-#else
-		       ,const stMeter_Run_data meterData[]) const
-#endif
-//由于 REG_DAT_DEBUG 需要修改结构成员来调试,所以不使用 const 限制
+		       ,stMeter_Run_data meterData[]
+		       ,const struct mb_read_req_pdu request_pdu) const
+
+//由于 DBG_REG_DAT 需要修改结构成员来调试,所以不使用 const 限制
 {
-	int i;
-	int addr;
-#ifdef REG_DAT_DEBUG
+#ifdef DBG_REG_DAT //测试各种数据类型
 	//folat
 	m_meterData[0]. m_iTOU[0]=1234.56789F;
 	printf(MB_PERFIX"dat debug: get (18)0x0012(float)    = %f \n"
 	       ,m_meterData[0]. m_iTOU[0]);
-
-	//printf("make a float from hex %x,sizeof this %x \n ",m_meterData[0].m_iTOU[0],
-	//     sizeof(m_meterData[0].m_iTOU[0]	));
-	//int
-	m_meterData[0]. Flag_Meter=0x12345678;
-	printf(MB_PERFIX"dat debug: get (0)0x0000(int)      = %d \n"
-	       ,m_meterData[0]. Flag_Meter);
-	//short
-	printf(MB_PERFIX"dat debug: get (62)0x003e(shrot)    = %d \n"
-	       ,m_meterData[0].m_Ie);
-	//char
+	//unsigned int
+	m_meterData[0]. Flag_Meter=1234567890;
+	printf(MB_PERFIX"dat debug: get (0)0x0000(int)       = %d (0x%08X)\n"
+	       ,m_meterData[0]. Flag_Meter,m_meterData[0]. Flag_Meter);
+	//unsigned short
+	m_meterData[0].m_Ie=12345;
+	printf(MB_PERFIX"dat debug: get (62)0x003e(shrot)    = %d (0x%04X)\n"
+	       ,m_meterData[0].m_Ie,m_meterData[0].m_Ie);
+	//unsigned char
 	m_meterData[0].m_cPortplan=0xab; m_meterData[0].m_cProt=0xcd;
-	printf(MB_PERFIX"dat debug: get (71)0x0047(char,char)= %X,%X \n"
-	       ,m_meterData[0].m_cPortplan,m_meterData[0].m_cProt);
+	printf(MB_PERFIX"dat debug: get (71)0x0047(char,char)= %d (0x%X),%d (0x%X) \n"
+	       ,m_meterData[0].m_cPortplan ,m_meterData[0].m_cPortplan
+	       ,m_meterData[0].m_cProt,m_meterData[0].m_cProt);
 #endif
+	int i;
+	int addr;
+	int start_addr=request_pdu.start_addr_hi<<8+request_pdu.start_addr_lo;
+	int end_addr=request_pdu.reg_quantity_hi<<8+request_pdu.reg_quantity_lo;
+
+	//以下是低效版本:
 	for (i=0;i<MAXMETER;i++){
 	//for (i=0;i<1;i++){
 		addr=(i<<8);//高字节表示表号,分辨各个不同的表,范围[0,MAXMETER]
@@ -769,8 +779,10 @@ int Cmbap::map_dat2reg(u16  reg_tbl[0xFFFF]
 					  ,meterData[i].m_time[6],0);
 
 	}
-	for(i=0;i<10;i++)
-		printf("%02X ",reg_tbl[i]);
+
+//	for(i=0;i<10;i++)
+//		printf("%02X ",reg_tbl[i]);
+
 	//printf(MB_PERFIX"map dat to reg,ok.\n");
 	return 0;
 }
