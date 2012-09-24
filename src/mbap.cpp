@@ -192,38 +192,9 @@ int Cmbap::ReciProc(void)
 	}
 	return 0;
 }
-//构造异常返回报文
-int Cmbap::make_msg_excep(struct mbap_head &respond_mbap,
-			  struct mb_excep_rsp_pdu &excep_respond_pdu,
-			  u8 func_code, u8 exception_code) const
-{
-	memcpy(&respond_mbap,&req_mbap,sizeof(req_mbap));
-	respond_mbap.len_lo=sizeof(respond_mbap.unitindet)
-			+sizeof(excep_respond_pdu);
-	excep_respond_pdu.exception_func_code=u8(func_code+0x80);
-	excep_respond_pdu.exception_code=exception_code;
-	return 0;
-}
 
-//发送异常返回报文
-int Cmbap::send_excep_response(void)
-{
-#ifdef SHOW_SEND_ERR_MSG
-	printf(MB_PERFIX">>> Send  to  master:");
-	this->print_mbap(this->rsp_mbap);
-	this->print_rsp_pdu(this-> excep_rsp_pdu);
-	printf("\n");
-#endif
-	//mbap
-	memcpy(&m_transBuf.m_transceiveBuf[0]
-	       ,&rsp_mbap,sizeof(rsp_mbap));//
-	//excep-pdu
-	memcpy(&m_transBuf.m_transceiveBuf[0]+sizeof(rsp_mbap)
-	       ,&excep_rsp_pdu,sizeof(excep_rsp_pdu));
-	//count
-	m_transBuf.m_transCount=sizeof(rsp_mbap)+sizeof(excep_rsp_pdu);
-	return 0;
-}
+
+
 
 /*	发送报文(功能码 0x06) 所有结构都是对于 0x06功能的
 	输入: response_mbap  response_pdu  pdu_dat[255]
@@ -297,7 +268,25 @@ int Cmbap::send_response(const struct mbap_head response_mbap
 //	       transBuf.m_transceiveBuf[6],transBuf.m_transCount);
 	return 0 ;
 }
-
+//发送异常返回报文
+int Cmbap::send_excep_response(void)
+{
+#ifdef SHOW_SEND_ERR_MSG
+	printf(MB_PERFIX">>> Send  to  master:");
+	this->print_mbap(this->rsp_mbap);
+	this->print_rsp_pdu(this-> excep_rsp_pdu);
+	printf("\n");
+#endif
+	//mbap
+	memcpy(&m_transBuf.m_transceiveBuf[0]
+	       ,&rsp_mbap,sizeof(rsp_mbap));//
+	//excep-pdu
+	memcpy(&m_transBuf.m_transceiveBuf[0]+sizeof(rsp_mbap)
+	       ,&excep_rsp_pdu,sizeof(excep_rsp_pdu));
+	//count
+	m_transBuf.m_transCount=sizeof(rsp_mbap)+sizeof(excep_rsp_pdu);
+	return 0;
+}
 /*	构建响应 0x06 的返回的报文
 	输入:	request_mbap (const)	请求的 mbap
 		request_pdu  (const)	请求的 pdu
@@ -373,7 +362,18 @@ int Cmbap::make_msg( const struct mbap_head request_mbap
 	respond_pdu.reg_quantity_lo=request_pdu.reg_quantity_lo;
 	return 0;
 }
-
+//构造异常返回报文
+int Cmbap::make_msg_excep(struct mbap_head &respond_mbap,
+			  struct mb_excep_rsp_pdu &excep_respond_pdu,
+			  u8 func_code, u8 exception_code) const
+{
+	memcpy(&respond_mbap,&req_mbap,sizeof(req_mbap));
+	respond_mbap.len_lo=sizeof(respond_mbap.unitindet)
+			+sizeof(excep_respond_pdu);
+	excep_respond_pdu.exception_func_code=u8(func_code+0x80);
+	excep_respond_pdu.exception_code=exception_code;
+	return 0;
+}
 //	输入验证 1	:验证信息体(报文),整体长度(大于7+1即合理)
 bool Cmbap::verify_msg(u8* recvBuf, unsigned short len) const
 {
@@ -659,28 +659,7 @@ inline void Cmbap::print_pdu_dat( const u8 pdu_dat[], u8 bytecount)const
 	}
 	printf("\b]");
 }
-int Cmbap::map_reg2dat(u16  reg_tbl[0xFFFF]
-		       ,stMeter_Run_data meterData[]
-		       ,const struct mb_write_req_pdu request_pdu) const
-{
-	int i;int addr;
-	u16 start_addr=u16((request_pdu.start_addr_hi<<8)+request_pdu.start_addr_lo);
-	unsigned char meter_no=u8((start_addr & 0xFF00)>>8);
-	unsigned char sub_id=u8((start_addr & 0xFF));
-	u16 end_addr=u16((request_pdu.reg_quantity_hi<<8)+request_pdu.reg_quantity_lo);
-	unsigned char meter_no_e=u8((end_addr & 0xFF00)>>8);
-	for(i=meter_no;i<meter_no_e;i++){ //循环 表号
-		addr=(i<<8);
-		switch(sub_id){ //每个表的 子寄存器地址
-		case 0x00:dat2mbreg_lo16bit(&reg_tbl[addr+0x00],meterData[i].Flag_Meter);
-			if((i<<8 & 0x00) ==end_addr) goto OK;
-		case 0x01:dat2mbreg_hi16bit(&reg_tbl[addr+0x01],meterData[i].Flag_Meter);
-			if((i<<8 & 0x01) ==end_addr) goto OK;
-		}
-	}
-OK:
-	return 0;
-}
+
 /*	将一些必要的数据从 stMeter_Run_data 结构体中复制(映射)到
 	reg_table 寄存器表以便读取这些数据
 	TODO: 目前主站请求一次,测复制全部变量到寄存器数组,应改进效率!
@@ -716,9 +695,8 @@ int Cmbap::map_dat2reg(u16  reg_tbl[0xFFFF]
 	int addr;
 
 #if 1
-	//以下是低效版本:高效版本TODO
+	//以下是低效版本(复制所有变量):高效版本TODO
 	for (i=0;i<MAXMETER;i++) {
-	//for (i=0;i<1;i++){
 		addr=(i<<8);//高字节表示表号,分辨各个不同的表,范围[0,MAXMETER]
 		//低字节表示各种数据,modbus寄存器16位,所以int型占用两个寄存器
 		/*0x0000*/	dat2mbreg_lo16bit(&reg_tbl[addr+0x00],meterData[i].Flag_Meter);
@@ -818,6 +796,29 @@ int Cmbap::map_dat2reg(u16  reg_tbl[0xFFFF]
 //		printf("%02X ",reg_tbl[i]);
 
 	//printf(MB_PERFIX"map dat to reg,ok.\n");
+	return 0;
+}
+//对应 0x10操作,把值从寄存器赋值给结构体变量
+int Cmbap::map_reg2dat(u16  reg_tbl[0xFFFF]
+		       ,stMeter_Run_data meterData[]
+		       ,const struct mb_write_req_pdu request_pdu) const
+{
+	int i;int addr;
+	u16 start_addr=u16((request_pdu.start_addr_hi<<8)+request_pdu.start_addr_lo);
+	unsigned char meter_no=u8((start_addr & 0xFF00)>>8);
+	unsigned char sub_id=u8((start_addr & 0xFF));
+	u16 end_addr=u16((request_pdu.reg_quantity_hi<<8)+request_pdu.reg_quantity_lo);
+	unsigned char meter_no_e=u8((end_addr & 0xFF00)>>8);
+	for(i=meter_no;i<meter_no_e;i++){ //循环 表号
+		addr=(i<<8);
+		switch(sub_id){ //每个表的 子寄存器地址
+		case 0x00:dat2mbreg_lo16bit(&reg_tbl[addr+0x00],meterData[i].Flag_Meter);
+			if((i<<8 & 0x00) ==end_addr) goto OK;
+		case 0x01:dat2mbreg_hi16bit(&reg_tbl[addr+0x01],meterData[i].Flag_Meter);
+			if((i<<8 & 0x01) ==end_addr) goto OK;
+		}
+	}
+OK:
 	return 0;
 }
 /* 参考文档:
