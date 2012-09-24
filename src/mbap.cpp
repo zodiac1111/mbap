@@ -684,7 +684,7 @@ int Cmbap::map_dat2reg(u16  reg_tbl[0xFFFF]
 	int end_addr=request_pdu.reg_quantity_hi<<8+request_pdu.reg_quantity_lo;
 
 	//以下是低效版本:
-	for (i=0;i<MAXMETER;i++){
+	for (i=0;i<MAXMETER;i++) {
 	//for (i=0;i<1;i++){
 		addr=(i<<8);//高字节表示表号,分辨各个不同的表,范围[0,MAXMETER]
 		//低字节表示各种数据,modbus寄存器16位,所以int型占用两个寄存器

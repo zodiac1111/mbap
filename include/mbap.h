@@ -1,7 +1,7 @@
 /*	filename: mbap.h -> libmbap.so
 	modbus的寄存器为16位,且按先高字节 后低字节传输
 	对于多于16位的数据类型如 int float,后2字节在前.
-	注意数据格式,寄存器格式,传输顺序
+	注意数据格式,寄存器格式,传输顺序,
 缩略语:
 	ADU Application Data Unit
 	IP Internet Protocol
