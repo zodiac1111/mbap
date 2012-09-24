@@ -1,5 +1,6 @@
 /*	filename: mbap.h -> libmbap.so
 	modbus的寄存器为16位,且按先高字节 后低字节传输
+	对于多于16位的数据类型如 int float,后2字节在前.
 缩略语:
 	ADU Application Data Unit
 	IP Internet Protocol
@@ -20,7 +21,7 @@ extern "C" CProtocol *CreateCProto_Cmbap(void);
 //libmbap 定义的错误消息
 //extern stMeter_Run_data m_meterData[MAXMETER];
 // 调试选项:
-//#define DBG_REG_DAT //强制设置结构体数据,用于寄存器数据(和网络传输)调试
+#define DBG_REG_DAT //强制设置结构体数据,用于寄存器数据(和网络传输)调试
 #define DBG_SHOW_RECI_MSG//在终端显示接收到 消息(报文)
 #define SHOW_SEND_MSG //在终端显示 发送的 消息(报文)
 #define SHOW_SEND_ERR_MSG //在终端显示 发送的 异常 消息(报文)
@@ -109,10 +110,8 @@ private://实用函数 将各种类型转换成为 16位modbus寄存器类型
 	void dat2mbreg_lo16bit(u16 reg[1],const float float32) const;
 	void dat2mbreg(u16 reg[1],const short dat16) const;
 	void dat2mbreg(u16 reg[1],const char high_byte,const char low_byte) const;
-#ifdef DBG_REG_DAT
-	int map_dat2reg(u16 reg_tbl[0xFFFF],stMeter_Run_data meterData[]) const;
-#else
-	int map_dat2reg(u16 reg_tbl[0xFFFF],const stMeter_Run_data meterData[])const;
-#endif
+	int map_dat2reg(u16 reg_tbl[0xFFFF],stMeter_Run_data meterData[]
+			, const mb_read_req_pdu request_pdu)const;
+
 };
 #endif //__MBAP_H__
