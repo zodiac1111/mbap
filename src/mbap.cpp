@@ -434,7 +434,7 @@ bool Cmbap:: verify_req_pdu(const struct mb_read_req_pdu request_pdu,
 	}
 	if(verify_reg_addr(request_pdu,start_addr,end_addr)==false){
 		printf("\n"MB_PERFIX_ERR ERR_ILLEGAL_DATA_ADDRESS_MSG);
-		printf(" start_addr=0x%04X end_addr=0x%04X.\n",start_addr,end_addr);
+		printf(" start_addr=0x%X end_addr=0x%X.\n",start_addr,end_addr);
 		errcode=ERR_ILLEGAL_DATA_ADDRESS;
 		return false;
 	}
@@ -452,7 +452,7 @@ bool Cmbap:: verify_req_pdu(const struct mb_write_req_pdu request_pdu,
 	}
 	if(verify_reg_addr(request_pdu,start_addr,end_addr)==false){
 		printf("\n"MB_PERFIX_ERR ERR_ILLEGAL_DATA_ADDRESS_MSG);
-		printf(" start_addr=0x%04X end_addr=0x%04X.\n",start_addr,end_addr);
+		printf(" start_addr=0x%X end_addr=0x%X.\n",start_addr,end_addr);
 		errcode=ERR_ILLEGAL_DATA_ADDRESS;
 		return false;
 	}
@@ -523,7 +523,7 @@ bool Cmbap::verify_reg_addr(const struct mb_read_req_pdu request_pdu,
 	int reg_quantity=0;
 	reg_quantity=(request_pdu.reg_quantity_hi << 8)+request_pdu.reg_quantity_lo;
 	start_addr=(request_pdu.start_addr_hi << 8) +request_pdu.start_addr_lo;
-	end_addr=start_addr+reg_quantity;
+	end_addr=start_addr+reg_quantity-1;
 	// 起始和结束地址[0x0000,0xFFFF]
 	if(start_addr<0x0000 || start_addr >0xFFFF
 			|| end_addr<0x0000 || end_addr >0xFFFF ){
@@ -537,7 +537,7 @@ bool Cmbap::verify_reg_addr(const struct mb_write_req_pdu request_pdu,
 	int reg_quantity=0;
 	reg_quantity=(request_pdu.reg_quantity_hi<<8)+request_pdu.reg_quantity_lo;
 	start_addr=(request_pdu.start_addr_hi<<8)+request_pdu.start_addr_lo;
-	end_addr=start_addr+reg_quantity;
+	end_addr=start_addr+reg_quantity-1;
 	// 起始和结束地址[0x0000,0xFFFF]
 	if(start_addr<0x0000 || start_addr >0xFFFF
 			|| end_addr<0x0000 || end_addr >0xFFFF ){
