@@ -590,14 +590,13 @@ inline void Cmbap::dat2mbreg_lo16bit(u16 reg[1],const signed int dat32) const
 {
 	reg[0]=u16((dat32 & 0x0000FFFF)>>0); //低2字节在前(这个顺序是modbus决定的)
 }
-//将32位 float 型数据 转化保存在 2个 modbus 寄存器(16位)中
-//IEEE 754 float 格式,在线转换 http://babbage.cs.qc.cuny.edu/IEEE-754/
+//将32位 float 型数据 转化保存在 2个 modbus 寄存器(16位)中(高16位)
 inline void Cmbap::dat2mbreg_hi16bit(u16 reg[1],const float float32) const
 {
 	//IEEE 754 float 格式,在线转换 http://babbage.cs.qc.cuny.edu/IEEE-754/
 	reg[0]=u16(( *(int *)&float32 & 0xFFFF0000)>>16);
 }
-//将32位 float 型数据 转化保存在 2个 modbus 寄存器(16位)中
+//将32位 float 型数据 转化保存在 2个 modbus 寄存器(16位)中(低16位)
 inline void Cmbap::dat2mbreg_lo16bit(u16 reg[1],const float float32) const
 {
 	reg[0]=u16(( *(int *)&float32 & 0x0000FFFF)>>0);
@@ -692,8 +691,6 @@ inline void Cmbap::print_pdu_dat( const u8 pdu_dat[], u8 bytecount)const
 int Cmbap::map_dat2reg(u16  reg_tbl[0xFFFF+1]
 		       ,stMeter_Run_data meterData[]
 		       ,const struct mb_read_req_pdu request_pdu) const
-
-//由于 DBG_REG_DAT 需要修改结构成员来调试,所以不使用 const 限制
 {
 #ifdef DBG_REG_DAT //测试各种数据类型
 	printf(MB_PERFIX"dat debug:(oct addr)hex addr(date type)=volue(hex)[addr base on ZERO]\n");
@@ -735,14 +732,14 @@ int Cmbap::map_dat2reg(u16  reg_tbl[0xFFFF+1]
 		//象限无功电能 4*5=20
 //		printf("line: %d sub=0x%X\n",__LINE__,sub);
 		for(j=0;j<TOUNUM;j++){ //
-			dat2mbreg_lo16bit(&reg_tbl[base+sub++],meterData[i].m_iMaxN[j]);
-			dat2mbreg_hi16bit(&reg_tbl[base+sub++],meterData[i].m_iMaxN[j]);
+			dat2mbreg_lo16bit(&reg_tbl[base+sub++],meterData[i].m_iQR_lm[j]);
+			dat2mbreg_hi16bit(&reg_tbl[base+sub++],meterData[i].m_iQR_lm[j]);
 		}
 		//最大需量 2*2*5=20
 //		printf("line: %d sub=0x%X\n",__LINE__,sub);
 		for(j=0;j<TOUNUM;j++){ //
-			dat2mbreg_lo16bit(&reg_tbl[base+sub++],meterData[i].m_iMaxN[j]);
-			dat2mbreg_hi16bit(&reg_tbl[base+sub++],meterData[i].m_iMaxN[j]);
+			dat2mbreg_lo16bit(&reg_tbl[base+sub++],meterData[i].m_iMaxNT[j]);
+			dat2mbreg_hi16bit(&reg_tbl[base+sub++],meterData[i].m_iMaxNT[j]);
 		}
 		//瞬时量 3*5+3 ((18))
 		for(j=0;j<PHASENUM;j++){//电压abc
