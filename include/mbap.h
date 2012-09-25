@@ -80,18 +80,21 @@ private://输入验证
 		      ,const struct mb_write_req_pdu read_req_pdu
 		      ,struct mbap_head &rsp_mbap
 		      ,struct mb_write_rsp_pdu  &respond_pdu)const;
-	int make_msg_excep(struct mbap_head &respond_mbap,
-			   mb_excep_rsp_pdu &excep_respond_pdu,
+	//构造异常返回报文
+	int make_msg_excep(struct mbap_head &mbap,
+			   mb_excep_rsp_pdu &excep_pdu,
 			   u8 func_code, u8 exception_code)const;
 	//发送异常回复
-	int send_excep_response(void);
+	int send_excep_response(const struct mbap_head mbap,
+				const struct mb_excep_rsp_pdu pdu,
+				struct TransReceiveBuf &transBuf )const ;
 	//发送正常回复,重载
-	int send_response(const mbap_head response_mbap
-			  ,const mb_read_rsp_pdu response_pdu
+	int send_response(const mbap_head mbap
+			  ,const mb_read_rsp_pdu pdu
 			  ,const rsp_dat pdu_dat[],
 			  struct TransReceiveBuf &transBuf) const;
-	int send_response(const struct mbap_head response_mbap
-				 ,const mb_write_rsp_pdu response_pdu
+	int send_response(const struct mbap_head mbap
+				 ,const mb_write_rsp_pdu pdu
 				 ,TransReceiveBuf &transBuf)const;
 private://各种打印:	mbap头, 请求pdu
 	void print_mbap( const mbap_head mbap)const;// 0x06 adn 0x10
@@ -103,7 +106,7 @@ private://各种打印:	mbap头, 请求pdu
 	void print_rsp_pdu(const mb_excep_rsp_pdu excep_respond_pdu)const;//异常
 	void print_pdu_dat(const u8 pdu_dat[],u8 bytecount)const;//0x06/0x10数据体
 private://实用函数 将各种类型转换成为 16位modbus寄存器类型
-	void dat2mbreg_hi16bit(u16 reg[1],const unsigned int dat32) const;
+	void dat2mbreg_hi16bit(u16 reg[1],const unsigned int dat32, int dir) const;
 	void dat2mbreg_lo16bit(u16 reg[1],const unsigned int dat32) const;
 	void dat2mbreg_hi16bit(u16 reg[1],const signed int  dat32) const;
 	void dat2mbreg_lo16bit(u16 reg[1],const signed int  dat32) const;

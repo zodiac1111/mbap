@@ -73,6 +73,7 @@ int Cmbap::ReciProc(void)
 	u8 readbuf[260];
 	bool verify_req=false;
 	u8 errcode=0;
+	int start_addr;
 	//0. 接收
 	len=get_num(&m_recvBuf);
 	if(len==0){
@@ -104,7 +105,7 @@ int Cmbap::ReciProc(void)
 		printf(" function code: 0x%02X.\n",funcode);
 		this->make_msg_excep(rsp_mbap,excep_rsp_pdu,
 				     funcode,ERR_ILLEGAL_FUN);
-		this->send_excep_response();
+		this->send_excep_response(req_mbap,excep_rsp_pdu,m_transBuf);
 	}
 	//根据功能码 判断 复制到不同的 请求pdu.
 	switch (funcode){
@@ -123,7 +124,7 @@ int Cmbap::ReciProc(void)
 			this->make_msg_excep(rsp_mbap,excep_rsp_pdu,
 					     read_req_pdu.func_code,errcode);
 			//发送
-			this->send_excep_response();
+			this->send_excep_response(req_mbap,excep_rsp_pdu,m_transBuf);
 			return -3;
 		}
 		//构造数据 m_meterData 中复制数据到 reg-table
@@ -133,7 +134,7 @@ int Cmbap::ReciProc(void)
 					     read_req_pdu.func_code,
 					     ERR_SLAVE_DEVICE_FAILURE);
 			//发送
-			this->send_excep_response();
+			this->send_excep_response(req_mbap,excep_rsp_pdu,m_transBuf);
 			return -4;
 		}
 		//构造报文
@@ -147,7 +148,7 @@ int Cmbap::ReciProc(void)
 		this->send_response(rsp_mbap,read_rsp_pdu,
 				    &ppdu_dat[0],m_transBuf);
 		break;
-	/******************************************************/
+		/******************************************************/
 	case MB_FUN_W_MULTI_REG://写多个寄存器 流程:参考文档[3].p31
 		memcpy(&write_req_pdu,&readbuf[0]+sizeof(req_mbap)//pdu
 		       ,sizeof(write_req_pdu));
@@ -161,7 +162,7 @@ int Cmbap::ReciProc(void)
 			this->make_msg_excep(rsp_mbap,excep_rsp_pdu,
 					     write_req_pdu.func_code,errcode);
 			//发送
-			this->send_excep_response();
+			this->send_excep_response(req_mbap,excep_rsp_pdu,m_transBuf);
 			return -3;
 		}
 		//pdu-dat(set reg as these values)
@@ -172,12 +173,10 @@ int Cmbap::ReciProc(void)
 		print_pdu_dat(ppdu_dat, write_req_pdu.byte_count);
 		printf("\n");
 #endif
-		//写寄存器操作
-		reg_table[0xfffb]=0x1234;
-		reg_table[0xfffc]=0x5678;
-		reg_table[0xfffd]=0x9abc;
-		reg_table[0xfffe]=0xdef0;
-		reg_table[0xffff]=0x1234;//u16((ppdu_dat[0]<<8)+ppdu_dat[1]);
+		//写寄存器操作 (DEMO)
+		start_addr=(write_req_pdu.start_addr_hi<<8)
+				+write_req_pdu.start_addr_lo;
+		reg_table[start_addr]=u16((ppdu_dat[0]<<8)+ppdu_dat[1]);
 		//构造报文
 		if(make_msg(this->req_mbap,this->write_req_pdu
 			    ,this->rsp_mbap,this->write_rsp_pdu) != 0){
@@ -193,38 +192,35 @@ int Cmbap::ReciProc(void)
 	return 0;
 }
 
-
-
-
 /*	发送报文(功能码 0x06) 所有结构都是对于 0x06功能的
 	输入: response_mbap  response_pdu  pdu_dat[256]
 	输出: transBuf(struct)	发送的报文.
 */
-int Cmbap::send_response(const struct mbap_head response_mbap
-			 ,const struct mb_read_rsp_pdu response_pdu
+int Cmbap::send_response(const struct mbap_head mbap
+			 ,const struct mb_read_rsp_pdu pdu
 			 ,const rsp_dat pdu_dat[256]
 			 ,TransReceiveBuf &transBuf)const
 {
-#ifdef SHOW_SEND_MSG
-	printf(MB_PERFIX">>> Send  to  master:");
-	this->print_mbap(response_mbap);
-	this->print_rsp_pdu(response_pdu);
-	this->print_pdu_dat(pdu_dat,response_pdu.byte_count);
-	printf("\n");
-#endif
 	//响应返回 send msg (to m_transBuf.m_transceiveBuf 数组)
 	memcpy(&transBuf.m_transceiveBuf[0]	//mbap
-	       ,&response_mbap,sizeof(response_mbap));//
-	memcpy(&transBuf.m_transceiveBuf[0]+sizeof(response_mbap)//pdu
-	       ,&response_pdu,sizeof(response_pdu));
+	       ,&mbap,sizeof(mbap));//
+	memcpy(&transBuf.m_transceiveBuf[0]+sizeof(mbap)//pdu
+	       ,&pdu,sizeof(pdu));
 	//pdu-dat
 	memcpy(&transBuf.m_transceiveBuf[0]
-	       +sizeof(response_mbap)+sizeof(response_pdu)
-	       ,pdu_dat,response_pdu.byte_count);
+	       +sizeof(mbap)+sizeof(pdu)
+	       ,pdu_dat,pdu.byte_count);
 	//trans count
-	transBuf.m_transCount=sizeof(response_mbap) //mbap
-			+sizeof(response_pdu) //pdu
-			+(response_pdu.byte_count); //pdu-dat
+	transBuf.m_transCount=sizeof(mbap) //mbap
+			+sizeof(pdu) //pdu
+			+(pdu.byte_count); //pdu-dat
+#ifdef SHOW_SEND_MSG
+	printf(MB_PERFIX">>> Send  to  master:");
+	this->print_mbap(mbap);
+	this->print_rsp_pdu(pdu);
+	this->print_pdu_dat(pdu_dat,pdu.byte_count);
+	printf("\n");
+#endif
 #ifdef DBG_send_response
 	int i;
 	printf("trancount=%d\n",transBuf.m_transCount);
@@ -236,55 +232,52 @@ int Cmbap::send_response(const struct mbap_head response_mbap
 #endif
 	return 0 ;
 }
-/*	发送报文(功能码 0x06) 所有结构都是对于 0x06功能的
+/*	发送报文(功能码 0x10) 所有结构都是对于 0x10功能的
 	输入: response_mbap  response_pdu
 	输出: transBuf(struct)	发送的报文.
 */
-int Cmbap::send_response(const struct mbap_head response_mbap
-			 ,const struct mb_write_rsp_pdu response_pdu
+int Cmbap::send_response(const struct mbap_head mbap
+			 ,const struct mb_write_rsp_pdu pdu
 			 ,struct TransReceiveBuf &transBuf)const
 {
+	memcpy(&transBuf.m_transceiveBuf[0]	//mbap
+	       ,&mbap,sizeof(mbap));
+	memcpy(&transBuf.m_transceiveBuf[0]+sizeof(mbap)//pdu
+	       ,&pdu,sizeof(pdu));
+	transBuf.m_transCount=sizeof(mbap)//count
+			+sizeof(pdu);
 #ifdef SHOW_SEND_MSG
 	printf(MB_PERFIX">>> Send  to  master:");
-	this->print_mbap(response_mbap);
-	this->print_rsp_pdu(response_pdu);
+	this->print_mbap(mbap);
+	this->print_rsp_pdu(pdu);
 	printf("\n");
 #endif
-	//响应返回 send msg (to m_transBuf.m_transceiveBuf 数组)
-	memcpy(&transBuf.m_transceiveBuf[0]	//mbap
-	       ,&response_mbap,sizeof(response_mbap));//
-	memcpy(&transBuf.m_transceiveBuf[0]+sizeof(response_mbap)//pdu
-	       ,&response_pdu,sizeof(response_pdu));
-	//trans count
-	transBuf.m_transCount=sizeof(response_mbap) //mbap
-			+sizeof(response_pdu); //pdu
-//	printf("%02X %02X %02X %02X %02X %02X %02X cnt=%d \n",
-//	       transBuf.m_transceiveBuf[0],
-//	       transBuf.m_transceiveBuf[1],
-//	       transBuf.m_transceiveBuf[2],
-//	       transBuf.m_transceiveBuf[3],
-//	       transBuf.m_transceiveBuf[4],
-//	       transBuf.m_transceiveBuf[5],
-//	       transBuf.m_transceiveBuf[6],transBuf.m_transCount);
+	//	printf("%02X %02X %02X %02X %02X %02X %02X cnt=%d \n",
+	//	       transBuf.m_transceiveBuf[0],
+	//	       transBuf.m_transceiveBuf[1],
+	//	       transBuf.m_transceiveBuf[2],
+	//	       transBuf.m_transceiveBuf[3],
+	//	       transBuf.m_transceiveBuf[4],
+	//	       transBuf.m_transceiveBuf[5],
+	//	       transBuf.m_transceiveBuf[6],transBuf.m_transCount);
 	return 0 ;
 }
 //发送异常返回报文
-int Cmbap::send_excep_response(void)
+int Cmbap::send_excep_response(const struct mbap_head mbap,
+			       const struct mb_excep_rsp_pdu pdu,
+			       struct TransReceiveBuf &transBuf )const
 {
+	memcpy(&transBuf.m_transceiveBuf[0]//mbap
+	       ,&mbap,sizeof(struct mbap_head));//
+	memcpy(&transBuf.m_transceiveBuf[0]+sizeof(mbap)//excep-pdu
+	       ,&pdu,sizeof(struct mb_excep_rsp_pdu));
+	transBuf.m_transCount=sizeof(mbap)+sizeof(pdu);//count
 #ifdef SHOW_SEND_ERR_MSG
 	printf(MB_PERFIX">>> Send  to  master:");
-	this->print_mbap(this->rsp_mbap);
-	this->print_rsp_pdu(this-> excep_rsp_pdu);
+	this->print_mbap(mbap);
+	this->print_rsp_pdu(pdu);
 	printf("\n");
 #endif
-	//mbap
-	memcpy(&m_transBuf.m_transceiveBuf[0]
-	       ,&rsp_mbap,sizeof(rsp_mbap));//
-	//excep-pdu
-	memcpy(&m_transBuf.m_transceiveBuf[0]+sizeof(rsp_mbap)
-	       ,&excep_rsp_pdu,sizeof(excep_rsp_pdu));
-	//count
-	m_transBuf.m_transCount=sizeof(rsp_mbap)+sizeof(excep_rsp_pdu);
 	return 0;
 }
 /*	构建响应 0x06 的返回的报文
@@ -328,8 +321,8 @@ int Cmbap::make_msg( const struct mbap_head request_mbap
 		printf("%04X = %02X ,%02X\n",reg_table[start_addr+i],pdu_dat[i*2+0],pdu_dat[i*2+1]);
 #endif
 	}
-//	printf("reg %02X ,%02X\n",pdu_dat[0],pdu_dat[1]);
-//	printf("reg %02X ,%02X\n",pdu_dat[2],pdu_dat[3]);
+	//	printf("reg %02X ,%02X\n",pdu_dat[0],pdu_dat[1]);
+	//	printf("reg %02X ,%02X\n",pdu_dat[2],pdu_dat[3]);
 	return 0;
 }
 /*	构建响应 0x10 的返回的报文
@@ -363,15 +356,15 @@ int Cmbap::make_msg( const struct mbap_head request_mbap
 	return 0;
 }
 //构造异常返回报文
-int Cmbap::make_msg_excep(struct mbap_head &respond_mbap,
-			  struct mb_excep_rsp_pdu &excep_respond_pdu,
+int Cmbap::make_msg_excep(struct mbap_head &mbap,
+			  struct mb_excep_rsp_pdu &excep_pdu,
 			  u8 func_code, u8 exception_code) const
 {
-	memcpy(&respond_mbap,&req_mbap,sizeof(req_mbap));
-	respond_mbap.len_lo=sizeof(respond_mbap.unitindet)
-			+sizeof(excep_respond_pdu);
-	excep_respond_pdu.exception_func_code=u8(func_code+0x80);
-	excep_respond_pdu.exception_code=exception_code;
+	memcpy(&mbap,&req_mbap,sizeof(req_mbap));
+	mbap.len_lo=sizeof(mbap.unitindet)
+			+sizeof(excep_pdu);
+	excep_pdu.exception_func_code=u8(func_code+0x80);
+	excep_pdu.exception_code=exception_code;
 	return 0;
 }
 //	输入验证 1	:验证信息体(报文),整体长度(大于7+1即合理)
@@ -548,7 +541,7 @@ bool Cmbap::verify_reg_addr(const struct mb_write_req_pdu request_pdu,
 }
 /********************* 一系列数据格式转换函数 **************************/
 //将32位 int 型数据 转化成为 2个 modbus寄存器(16位)的形式 的高16位
-inline void Cmbap::dat2mbreg_hi16bit(u16 reg[1],const unsigned int dat32) const
+inline void Cmbap::dat2mbreg_hi16bit(u16 reg[1],const unsigned int dat32,int dir=0) const
 {
 	reg[0]=u16((dat32 & 0xFFFF0000)>>16);//高16bit
 }
@@ -792,8 +785,8 @@ int Cmbap::map_dat2reg(u16  reg_tbl[0xFFFF]
 	}
 
 #endif
-//	for(i=0;i<10;i++)
-//		printf("%02X ",reg_tbl[i]);
+	//	for(i=0;i<10;i++)
+	//		printf("%02X ",reg_tbl[i]);
 
 	//printf(MB_PERFIX"map dat to reg,ok.\n");
 	return 0;
