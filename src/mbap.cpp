@@ -16,7 +16,6 @@
 #include "log.h"
 #include "mbap.h"
 
-
 /***************************** 接口 ***********************/
 extern "C" CProtocol *CreateCProto_Cmbap(void)
 {
@@ -42,13 +41,23 @@ Cmbap::~Cmbap()
 {
 	printf(MB_PERFIX"disconstruct class\n");
 }
+int Cmbap::Init(struct stPortConfig *tmp_portcfg){
+	if(tmp_portcfg->m_ertuaddr>>8 != 0x00){
+		printf(MB_PERFIX_ERR"Slave ID len is more than 1 Byte"
+		       ",please set less than 0xFF(255)\n");
+		return -1;
+	}
+	this->slave_ID=(unsigned char)tmp_portcfg->m_ertuaddr;
+	printf("slave_ID=%d\n",slave_ID);
+	return 0;
+}
 
-void Cmbap::m_BroadcastTime(void)// 广播
+void Cmbap::m_BroadcastTime(void)// 广播(一般协议0x255为广播)
 {
 	return;
 }
 
-/*	TODO: 从站主动发送:
+/*	TODO: 从站主动发送(待定):
 	当前没有被利用,可能的话可以用来从站主动上传某些报警信息,
 	modbus串口传统形式是不支持从站主动上传的,这仅在modbus/tcp中定义.
 */
@@ -65,15 +74,14 @@ void Cmbap::SendProc(void)
 	构造报文: make_*_msg
 	返回:		response_*
 */
-//TODO:将各种逻辑功能相同的函数重载
 int Cmbap::ReciProc(void)
 {
 	unsigned short  len=0;
-	//TCP MODBUS ADU = 253 bytes + MBAP (7 bytes) = 260 bytes.
-	u8 readbuf[260];
+	u8 readbuf[260];//TCP MODBUS ADU = 253 bytes+MBAP (7 bytes) = 260 bytes
 	bool verify_req=false;
-	u8 errcode=0;
+	u8 errcode=0;int i;
 	int start_addr;
+	int reg_quantity;
 	//0. 接收
 	len=get_num(&m_recvBuf);
 	if(len==0){
@@ -85,17 +93,23 @@ int Cmbap::ReciProc(void)
 		printf(MB_PERFIX_ERR"reci illegal message\n");
 		return -1;
 	}
-	syn_loopbuff_ptr(&m_recvBuf);//接收完成
+	syn_loopbuff_ptr(&m_recvBuf);
+	//接收完成,进行报文处理:检验,(执行)返回
 	//复制出MBAP头
 	memcpy(&req_mbap,&readbuf[0],sizeof(req_mbap));
+#define SLVER_NUM 2 //TODO 暂时的从站编号,应该检查
+	//检查是否是发送给本从站的
+	if(req_mbap.unitindet != SLVER_NUM ){
+		return 0;
+	}
 	//验证2 mbap头验证
 	if(this->verify_mbap(req_mbap) == false){
+		printf(MB_PERFIX_ERR"verify_mbap\n");
 		return -2;
 	}
 #ifdef DBG_SHOW_RECI_MSG
 	printf(MB_PERFIX"<<< Reci form master:");
-	print_mbap(req_mbap);
-	fflush(stdout);
+	print_mbap(req_mbap);fflush(stdout);//stdout为行缓存设备,强制刷新
 #endif
 	//验证:功能码,
 	u8 funcode=readbuf[sizeof(req_mbap)];
@@ -103,9 +117,8 @@ int Cmbap::ReciProc(void)
 		printf("(%02X|NaN)\n",funcode);
 		printf(MB_PERFIX_ERR ERR_ILLEGAL_FUN_MSG);
 		printf(" function code: 0x%02X.\n",funcode);
-		this->make_msg_excep(rsp_mbap,excep_rsp_pdu,
-				     funcode,ERR_ILLEGAL_FUN);
-		this->send_excep_response(req_mbap,excep_rsp_pdu,m_transBuf);
+		make_msg_excep(rsp_mbap,excep_rsp_pdu,funcode,ERR_ILLEGAL_FUN);
+		send_excep_response(req_mbap,excep_rsp_pdu,m_transBuf);
 	}
 	//根据功能码 判断 复制到不同的 请求pdu.
 	switch (funcode){
@@ -125,7 +138,7 @@ int Cmbap::ReciProc(void)
 					     read_req_pdu.func_code,errcode);
 			//发送
 			this->send_excep_response(req_mbap,excep_rsp_pdu,m_transBuf);
-			return -3;
+			return 0;
 		}
 		//构造数据 m_meterData 中复制数据到 reg-table
 		if(this->map_dat2reg(this->reg_table,this-> m_meterData,read_req_pdu) != 0 ){
@@ -135,14 +148,14 @@ int Cmbap::ReciProc(void)
 					     ERR_SLAVE_DEVICE_FAILURE);
 			//发送
 			this->send_excep_response(req_mbap,excep_rsp_pdu,m_transBuf);
-			return -4;
+			return 0;
 		}
 		//构造报文
 		if(make_msg(this->req_mbap,this->read_req_pdu
 			    ,this->rsp_mbap,this->read_rsp_pdu
 			    ,this->ppdu_dat) != 0){
 			printf(MB_PERFIX_ERR"make msg\n");
-			return -4;
+			return 0;
 		}
 		//发送
 		this->send_response(rsp_mbap,read_rsp_pdu,
@@ -163,7 +176,7 @@ int Cmbap::ReciProc(void)
 					     write_req_pdu.func_code,errcode);
 			//发送
 			this->send_excep_response(req_mbap,excep_rsp_pdu,m_transBuf);
-			return -3;
+			return 0;
 		}
 		//pdu-dat(set reg as these values)
 		memcpy(&ppdu_dat,
@@ -176,17 +189,22 @@ int Cmbap::ReciProc(void)
 		//写寄存器操作 (DEMO)
 		start_addr=(write_req_pdu.start_addr_hi<<8)
 				+write_req_pdu.start_addr_lo;
-		reg_table[start_addr]=u16((ppdu_dat[0]<<8)+ppdu_dat[1]);
+		reg_quantity=(write_req_pdu.reg_quantity_hi<<8)+write_req_pdu.reg_quantity_lo;
+		for(i=0;i<reg_quantity;i++){
+			reg_table[start_addr+i]=(ppdu_dat[i*2+0]<<8)+ppdu_dat[i*2+1];
+			printf("regtable=%X ;",reg_table[start_addr+i]);
+		}
+		map_reg2dat(reg_table,m_meterData,write_req_pdu);
 		//构造报文
 		if(make_msg(this->req_mbap,this->write_req_pdu
 			    ,this->rsp_mbap,this->write_rsp_pdu) != 0){
 			printf(MB_PERFIX_ERR"make msg\n");
-			return -4;
+			return 0;
 		}
 		this->send_response(rsp_mbap,write_rsp_pdu,m_transBuf);
 		break;
 	default:
-		return -4;
+		return 0;
 		break;
 	}
 	return 0;
@@ -470,11 +488,10 @@ bool Cmbap::verify_funcode(const u8  funcode) const
 	case MB_FUN_R_HOLD_REG:
 		return true;
 		break;
-	case MB_FUN_W_MULTI_REG: //TODO write funciton
-		//printf(MB_PERFIX_WARN"Function code: 0x10 is now debuging :-) \n");
+	case MB_FUN_W_MULTI_REG:
 		return true;
 		break;
-		/* .add funcode here */
+		/* .add other funcode here */
 	default://其他功能码不被支持
 		break;
 	}
@@ -541,14 +558,24 @@ bool Cmbap::verify_reg_addr(const struct mb_write_req_pdu request_pdu,
 }
 /********************* 一系列数据格式转换函数 **************************/
 //将32位 int 型数据 转化成为 2个 modbus寄存器(16位)的形式 的高16位
-inline void Cmbap::dat2mbreg_hi16bit(u16 reg[1],const unsigned int dat32,int dir=0) const
+inline void Cmbap::dat2mbreg_hi16bit(u16 reg[1], unsigned int &dat32,int dir=0) const
 {
-	reg[0]=u16((dat32 & 0xFFFF0000)>>16);//高16bit
+	if(dir==0){
+		reg[0]=u16((dat32 & 0xFFFF0000)>>16);//高16bit
+	}else{
+		dat32=(dat32 & 0x0000FFFF) | (reg[0]<<16);
+		printf("dat32=%X reg=%X ",dat32,reg[0]);
+	}
 }
 //将32位 int 型数据 转化成为 2个 modbus寄存器(16位)的形式
-inline void Cmbap::dat2mbreg_lo16bit(u16 reg[1],const unsigned int dat32) const
+inline void Cmbap::dat2mbreg_lo16bit(u16 reg[1], unsigned int &dat32,int dir=0) const
 {
-	reg[0]=u16((dat32 & 0x0000FFFF)>>0); //低16bit
+	if(dir==0){
+		reg[0]=u16((dat32 & 0x0000FFFF)>>0); //低16bit
+	}else{
+		dat32=(dat32 & 0xFFFF0000) | reg[0];
+		printf("dat32=%X reg=%X ",dat32,reg[0]);
+	}
 }
 //将32位 in t型数据 转化成为 2个 modbus寄存器(16位)的形式
 inline void Cmbap::dat2mbreg_hi16bit(u16 reg[1],const signed int dat32) const
@@ -659,13 +686,14 @@ inline void Cmbap::print_pdu_dat( const u8 pdu_dat[], u8 bytecount)const
 	输入:	struct stMeter_Run_data m_meterData[MAXMETER]
 	输出:	u16  reg_table[0xFFFF]
 */
-int Cmbap::map_dat2reg(u16  reg_tbl[0xFFFF]
+int Cmbap::map_dat2reg(u16  reg_tbl[0xFFFF+1]
 		       ,stMeter_Run_data meterData[]
 		       ,const struct mb_read_req_pdu request_pdu) const
 
 //由于 DBG_REG_DAT 需要修改结构成员来调试,所以不使用 const 限制
 {
 #ifdef DBG_REG_DAT //测试各种数据类型
+	printf(MB_PERFIX"dat debug:(oct addr)hex addr(date type)=volue(hex)[addr base on ZERO]\n");
 	//folat
 	m_meterData[0]. m_iTOU[0]=1234.56789F;
 	printf(MB_PERFIX"dat debug: get (18)0x0012(float)    = %f \n"
@@ -676,7 +704,7 @@ int Cmbap::map_dat2reg(u16  reg_tbl[0xFFFF]
 	       ,m_meterData[0]. Flag_Meter,m_meterData[0]. Flag_Meter);
 	//unsigned short
 	m_meterData[0].m_Ie=12345;
-	printf(MB_PERFIX"dat debug: get (62)0x003e(shrot)    = %d (0x%04X)\n"
+	printf(MB_PERFIX"dat debug: get (62)0x003E(shrot)    = %d (0x%04X)\n"
 	       ,m_meterData[0].m_Ie,m_meterData[0].m_Ie);
 	//unsigned char
 	m_meterData[0].m_cPortplan=0xab; m_meterData[0].m_cProt=0xcd;
@@ -684,103 +712,126 @@ int Cmbap::map_dat2reg(u16  reg_tbl[0xFFFF]
 	       ,m_meterData[0].m_cPortplan ,m_meterData[0].m_cPortplan
 	       ,m_meterData[0].m_cProt,m_meterData[0].m_cProt);
 #endif
-	int i;
-	int addr;
-
+	int i;int j;int sub;//子域,某个表的特定参数
+	int base;
 #if 1
 	//以下是低效版本(复制所有变量):高效版本TODO
 	for (i=0;i<MAXMETER;i++) {
-		addr=(i<<8);//高字节表示表号,分辨各个不同的表,范围[0,MAXMETER]
+		base=(i<<8);//高字节表示表号,分辨各个不同的表,范围[0,MAXMETER]
+		sub=0;
 		//低字节表示各种数据,modbus寄存器16位,所以int型占用两个寄存器
-		/*0x0000*/	dat2mbreg_lo16bit(&reg_tbl[addr+0x00],meterData[i].Flag_Meter);
-		/*0x0001*/	dat2mbreg_hi16bit(&reg_tbl[addr+0x01],meterData[i].Flag_Meter);
-		/*0x0002*/	dat2mbreg_lo16bit(&reg_tbl[addr+0x02],meterData[i].Flag_TOU);
-		/*0x0003*/	dat2mbreg_hi16bit(&reg_tbl[addr+0x03],meterData[i].Flag_TOU);
-		/*0x0004*/	dat2mbreg_lo16bit(&reg_tbl[addr+0x04],meterData[i].FLag_TA);
-		/*0x0005*/	dat2mbreg_hi16bit(&reg_tbl[addr+0x05],meterData[i].FLag_TA);
-		/*0x0006*/	dat2mbreg_lo16bit(&reg_tbl[addr+0x06],meterData[i].Flag_MN);
-		/*0x0007*/	dat2mbreg_hi16bit(&reg_tbl[addr+0x07],meterData[i].Flag_MN);
-		/*0x0008*/	dat2mbreg_lo16bit(&reg_tbl[addr+0x08],meterData[i].Flag_MNT);
-		/*0x0009*/	dat2mbreg_hi16bit(&reg_tbl[addr+0x09],meterData[i].Flag_MNT);
-		/*0x000a*/	dat2mbreg_lo16bit(&reg_tbl[addr+0x0a],meterData[i].Flag_QR);
-		/*0x000b*/	dat2mbreg_hi16bit(&reg_tbl[addr+0x0b],meterData[i].Flag_QR);
-		/*0x000c*/	dat2mbreg_lo16bit(&reg_tbl[addr+0x0c],meterData[i].Flag_LastTOU_Collect);
-		/*0x000d*/	dat2mbreg_hi16bit(&reg_tbl[addr+0x0d],meterData[i].Flag_LastTOU_Collect);
-		/*0x000e*/	dat2mbreg_lo16bit(&reg_tbl[addr+0x0e],meterData[i].Flag_LastTOU_Save);
-		/*0x000f*/	dat2mbreg_hi16bit(&reg_tbl[addr+0x0f],meterData[i].Flag_LastTOU_Save);
-		/*0x0010*/	dat2mbreg_lo16bit(&reg_tbl[addr+0x10],meterData[i].Flag_PB);
-		/*0x0011*/	dat2mbreg_hi16bit(&reg_tbl[addr+0x11],meterData[i].Flag_PB);
-		/*0x0012*/	dat2mbreg_lo16bit(&reg_tbl[addr+0x12],meterData[i].m_iTOU[0]);
-		/*0x0013*/	dat2mbreg_hi16bit(&reg_tbl[addr+0x13],meterData[i].m_iTOU[0]);
-		/*0x0014*/	dat2mbreg_lo16bit(&reg_tbl[addr+0x14],meterData[i].m_iMaxN[0]);
-		/*0x0015*/	dat2mbreg_hi16bit(&reg_tbl[addr+0x15],meterData[i].m_iMaxN[0]);
-		/*0x0016*/	dat2mbreg_lo16bit(&reg_tbl[addr+0x16],meterData[i].m_iMaxNT[0]);
-		/*0x0017*/	dat2mbreg_hi16bit(&reg_tbl[addr+0x17],meterData[i].m_iMaxNT[0]);
-		/*0x0018*/	dat2mbreg_lo16bit(&reg_tbl[addr+0x18],meterData[i].m_iTOU_lm[0]);
-		/*0x0019*/	dat2mbreg_hi16bit(&reg_tbl[addr+0x19],meterData[i].m_iTOU_lm[0]);
-		/*0x001a*/	dat2mbreg_lo16bit(&reg_tbl[addr+0x1a],meterData[i].m_iQR_lm[0]);
-		/*0x001b*/	dat2mbreg_hi16bit(&reg_tbl[addr+0x1b],meterData[i].m_iQR_lm[0]);
-		/*0x001c*/	dat2mbreg_lo16bit(&reg_tbl[addr+0x1c],meterData[i].m_iMaxN_lm[0]);
-		/*0x001d*/	dat2mbreg_hi16bit(&reg_tbl[addr+0x1d],meterData[i].m_iMaxN_lm[0]);
-		/*0x001e*/	dat2mbreg_lo16bit(&reg_tbl[addr+0x1e],meterData[i].m_iMaxNT_lm[0]);
-		/*0x001f*/	dat2mbreg_hi16bit(&reg_tbl[addr+0x1f],meterData[i].m_iMaxNT_lm[0]);
-		/*0x0020*/	dat2mbreg_lo16bit(&reg_tbl[addr+0x20],meterData[i].m_iQR[0]);
-		/*0x0021*/	dat2mbreg_hi16bit(&reg_tbl[addr+0x21],meterData[i].m_iQR[0]);
-		/*0x0022*/	dat2mbreg_lo16bit(&reg_tbl[addr+0x22],meterData[i].m_iP[0]);
-		/*0x0023*/	dat2mbreg_hi16bit(&reg_tbl[addr+0x23],meterData[i].m_iP[0]);
-		/*0x0024*/	dat2mbreg_lo16bit(&reg_tbl[addr+0x24],meterData[i].m_wU[0]);
-		/*0x0025*/	dat2mbreg_hi16bit(&reg_tbl[addr+0x25],meterData[i].m_wU[0]);
-		/*0x0026*/	dat2mbreg_lo16bit(&reg_tbl[addr+0x26],meterData[i].m_wQ[0]);
-		/*0x0027*/	dat2mbreg_hi16bit(&reg_tbl[addr+0x27],meterData[i].m_wQ[0]);
-		/*0x0028*/	dat2mbreg_lo16bit(&reg_tbl[addr+0x28],meterData[i].m_wPF[0]);
-		/*0x0029*/	dat2mbreg_hi16bit(&reg_tbl[addr+0x29],meterData[i].m_wPF[0]);
-		/*0x002a*/	dat2mbreg_lo16bit(&reg_tbl[addr+0x2a],meterData[i].m_wPBCount[0]);
-		/*0x002b*/	dat2mbreg_hi16bit(&reg_tbl[addr+0x2b],meterData[i].m_wPBCount[0]);
-		/*0x002c*/	dat2mbreg_lo16bit(&reg_tbl[addr+0x2c],meterData[i].m_iPBTotalTime[0]);
-		/*0x002d*/	dat2mbreg_hi16bit(&reg_tbl[addr+0x2d],meterData[i].m_iPBTotalTime[0]);
-		/*0x002e*/	dat2mbreg_lo16bit(&reg_tbl[addr+0x2e],meterData[i].m_iPBstarttime[0]);
-		/*0x002f*/	dat2mbreg_hi16bit(&reg_tbl[addr+0x2f],meterData[i].m_iPBstarttime[0]);
-		/*0x0030*/	dat2mbreg_lo16bit(&reg_tbl[addr+0x30],meterData[i].m_iPBstoptime[0]);
-		/*0x0031*/	dat2mbreg_hi16bit(&reg_tbl[addr+0x31],meterData[i].m_iPBstoptime[0]);
-		/*0x0032*/	dat2mbreg_lo16bit(&reg_tbl[addr+0x32],meterData[i].ratio);
-		/*0x0033*/	dat2mbreg_hi16bit(&reg_tbl[addr+0x33],meterData[i].ratio);
-		/*0x0034*/	dat2mbreg_lo16bit(&reg_tbl[addr+0x34],meterData[i].C_Value);
-		/*0x0035*/	dat2mbreg_hi16bit(&reg_tbl[addr+0x35],meterData[i].C_Value);
-		/*0x0036*/	dat2mbreg_lo16bit(&reg_tbl[addr+0x36],meterData[i].L_Value);
-		/*0x0037*/	dat2mbreg_hi16bit(&reg_tbl[addr+0x37],meterData[i].L_Value);
-		/*0x0038*/	dat2mbreg_lo16bit(&reg_tbl[addr+0x38],meterData[i].m_cNetflag);
-		/*0x0039*/	dat2mbreg_hi16bit(&reg_tbl[addr+0x39],meterData[i].m_cNetflag);
-		/*0x003a*/	dat2mbreg_lo16bit(&reg_tbl[addr+0x3a],meterData[i]. m_cNetflag_tmp);
-		/*0x003b*/	dat2mbreg_hi16bit(&reg_tbl[addr+0x3b],meterData[i]. m_cNetflag_tmp);
-		/*0x003c*/	dat2mbreg(&reg_tbl[addr+0x3c],meterData[i].m_cF);//short
-		/*0x003d*/	dat2mbreg(&reg_tbl[addr+0x3d],meterData[i].m_Ue);
-		/*0x003e*/	dat2mbreg(&reg_tbl[addr+0x3e],meterData[i].m_Ie);
-		/*0x003f*/	dat2mbreg(&reg_tbl[addr+0x3f]
+		/*0x00*/	dat2mbreg_lo16bit(&reg_tbl[base+sub++],meterData[i].Flag_Meter);
+		/*0x01*/	dat2mbreg_hi16bit(&reg_tbl[base+sub++],meterData[i].Flag_Meter);
+		/*0x02*/	dat2mbreg_lo16bit(&reg_tbl[base+sub++],meterData[i].Flag_TOU);
+		/*0x03*/	dat2mbreg_hi16bit(&reg_tbl[base+sub++],meterData[i].Flag_TOU);
+		/*0x04*/	dat2mbreg_lo16bit(&reg_tbl[base+sub++],meterData[i].FLag_TA);
+		/*0x05*/	dat2mbreg_hi16bit(&reg_tbl[base+sub++],meterData[i].FLag_TA);
+		/*0x06*/	dat2mbreg_lo16bit(&reg_tbl[base+sub++],meterData[i].Flag_MN);
+		/*0x07*/	dat2mbreg_hi16bit(&reg_tbl[base+sub++],meterData[i].Flag_MN);
+		/*0x08*/	dat2mbreg_lo16bit(&reg_tbl[base+sub++],meterData[i].Flag_MNT);
+		/*0x09*/	dat2mbreg_hi16bit(&reg_tbl[base+sub++],meterData[i].Flag_MNT);
+		/*0x0a*/	dat2mbreg_lo16bit(&reg_tbl[base+sub++],meterData[i].Flag_QR);
+		/*0x0b*/	dat2mbreg_hi16bit(&reg_tbl[base+sub++],meterData[i].Flag_QR);
+		/*0x0c*/	dat2mbreg_lo16bit(&reg_tbl[base+sub++],meterData[i].Flag_LastTOU_Collect);
+		/*0x0d*/	dat2mbreg_hi16bit(&reg_tbl[base+sub++],meterData[i].Flag_LastTOU_Collect);
+		/*0x0e*/	dat2mbreg_lo16bit(&reg_tbl[base+sub++],meterData[i].Flag_LastTOU_Save);
+		/*0x0f*/	dat2mbreg_hi16bit(&reg_tbl[base+sub++],meterData[i].Flag_LastTOU_Save);
+		/*0x10*/	dat2mbreg_lo16bit(&reg_tbl[base+sub++],meterData[i].Flag_PB);
+		/*0x11*/	dat2mbreg_hi16bit(&reg_tbl[base+sub++],meterData[i].Flag_PB);
+		for(j=0;j<TOUNUM;j++){ //TOUNUM=20 0x12+0x27=0x39
+			dat2mbreg_lo16bit(&reg_tbl[base+sub++],meterData[i].m_iTOU[j]);
+			dat2mbreg_hi16bit(&reg_tbl[base+sub++],meterData[i].m_iTOU[j]);
+		}
+		printf("line: %d sub=0x%X\n",__LINE__,sub);
+		for(j=0;j<TOUNUM;j++){ //TOUNUM=20
+			dat2mbreg_lo16bit(&reg_tbl[base+sub++],meterData[i].m_iMaxN[j]);
+			dat2mbreg_hi16bit(&reg_tbl[base+sub++],meterData[i].m_iMaxN[j]);
+		}
+		printf("line: %d sub=0x%X\n",__LINE__,sub);
+		for(j=0;j<PHASENUM;j++){
+			dat2mbreg_lo16bit(&reg_tbl[base+sub++],meterData[i].m_wU[j]);
+			dat2mbreg_hi16bit(&reg_tbl[base+sub++],meterData[i].m_wU[j]);
+
+		}
+		printf("line: %d sub=0x%X\n",__LINE__,sub);
+		for(j=0;j<PHASENUM;j++){
+			dat2mbreg_lo16bit(&reg_tbl[base+sub++],meterData[i].m_wI[j]);
+			dat2mbreg_hi16bit(&reg_tbl[base+sub++],meterData[i].m_wI[j]);
+		}
+		printf("line: %d sub=0x%X\n",__LINE__,sub);
+		for(j=0;j<PQCNUM;j++){
+			dat2mbreg_lo16bit(&reg_tbl[base+sub++],meterData[i].m_wQ[j]);
+			dat2mbreg_hi16bit(&reg_tbl[base+sub++],meterData[i].m_wQ[j]);
+		}
+		printf("line: %d sub=0x%X\n",__LINE__,sub);
+		/*0x0016*/	dat2mbreg_lo16bit(&reg_tbl[base+sub++],meterData[i].m_iMaxNT[0]);
+		/*0x0017*/	dat2mbreg_hi16bit(&reg_tbl[base+sub++],meterData[i].m_iMaxNT[0]);
+		/*0x0018*/	dat2mbreg_lo16bit(&reg_tbl[base+sub++],meterData[i].m_iTOU_lm[0]);
+		/*0x0019*/	dat2mbreg_hi16bit(&reg_tbl[base+sub++],meterData[i].m_iTOU_lm[0]);
+		/*0x001a*/	dat2mbreg_lo16bit(&reg_tbl[base+sub++],meterData[i].m_iQR_lm[0]);
+		/*0x001b*/	dat2mbreg_hi16bit(&reg_tbl[base+sub++],meterData[i].m_iQR_lm[0]);
+		/*0x001c*/	dat2mbreg_lo16bit(&reg_tbl[base+sub++],meterData[i].m_iMaxN_lm[0]);
+		/*0x001d*/	dat2mbreg_hi16bit(&reg_tbl[base+sub++],meterData[i].m_iMaxN_lm[0]);
+		/*0x001e*/	dat2mbreg_lo16bit(&reg_tbl[base+sub++],meterData[i].m_iMaxNT_lm[0]);
+		/*0x001f*/	dat2mbreg_hi16bit(&reg_tbl[base+sub++],meterData[i].m_iMaxNT_lm[0]);
+		/*0x0020*/	dat2mbreg_lo16bit(&reg_tbl[base+sub++],meterData[i].m_iQR[0]);
+		/*0x0021*/	dat2mbreg_hi16bit(&reg_tbl[base+sub++],meterData[i].m_iQR[0]);
+		/*0x0022*/	dat2mbreg_lo16bit(&reg_tbl[base+sub++],meterData[i].m_iP[0]);
+		/*0x0023*/	dat2mbreg_hi16bit(&reg_tbl[base+sub++],meterData[i].m_iP[0]);
+		/*0x0024*/	dat2mbreg_lo16bit(&reg_tbl[base+sub++],meterData[i].m_wU[0]);
+		/*0x0025*/	dat2mbreg_hi16bit(&reg_tbl[base+sub++],meterData[i].m_wU[0]);
+		/*0x0026*/	dat2mbreg_lo16bit(&reg_tbl[base+sub++],meterData[i].m_wQ[0]);
+		/*0x0027*/	dat2mbreg_hi16bit(&reg_tbl[base+sub++],meterData[i].m_wQ[0]);
+		/*0x0028*/	dat2mbreg_lo16bit(&reg_tbl[base+sub++],meterData[i].m_wPF[0]);
+		/*0x0029*/	dat2mbreg_hi16bit(&reg_tbl[base+sub++],meterData[i].m_wPF[0]);
+		/*0x002a*/	dat2mbreg_lo16bit(&reg_tbl[base+sub++],meterData[i].m_wPBCount[0]);
+		/*0x002b*/	dat2mbreg_hi16bit(&reg_tbl[base+sub++],meterData[i].m_wPBCount[0]);
+		/*0x002c*/	dat2mbreg_lo16bit(&reg_tbl[base+sub++],meterData[i].m_iPBTotalTime[0]);
+		/*0x002d*/	dat2mbreg_hi16bit(&reg_tbl[base+sub++],meterData[i].m_iPBTotalTime[0]);
+		/*sub++2e*/	dat2mbreg_lo16bit(&reg_tbl[base+sub++],meterData[i].m_iPBstarttime[0]);
+		/*sub++2f*/	dat2mbreg_hi16bit(&reg_tbl[base+sub++],meterData[i].m_iPBstarttime[0]);
+		/*sub++30*/	dat2mbreg_lo16bit(&reg_tbl[base+sub++],meterData[i].m_iPBstoptime[0]);
+		/*sub++31*/	dat2mbreg_hi16bit(&reg_tbl[base+sub++],meterData[i].m_iPBstoptime[0]);
+		/*sub++32*/	dat2mbreg_lo16bit(&reg_tbl[base+sub++],meterData[i].ratio);
+		/*sub++33*/	dat2mbreg_hi16bit(&reg_tbl[base+sub++],meterData[i].ratio);
+		/*sub++34*/	dat2mbreg_lo16bit(&reg_tbl[base+sub++],meterData[i].C_Value);
+		/*sub++35*/	dat2mbreg_hi16bit(&reg_tbl[base+sub++],meterData[i].C_Value);
+		/*sub++36*/	dat2mbreg_lo16bit(&reg_tbl[base+sub++],meterData[i].L_Value);
+		/*sub++37*/	dat2mbreg_hi16bit(&reg_tbl[base+sub++],meterData[i].L_Value);
+		/*sub++38*/	dat2mbreg_lo16bit(&reg_tbl[base+sub++],meterData[i].m_cNetflag);
+		/*sub++39*/	dat2mbreg_hi16bit(&reg_tbl[base+sub++],meterData[i].m_cNetflag);
+		/*sub++3a*/	dat2mbreg_lo16bit(&reg_tbl[base+sub++],meterData[i]. m_cNetflag_tmp);
+		/*sub++3b*/	dat2mbreg_hi16bit(&reg_tbl[base+sub++],meterData[i]. m_cNetflag_tmp);
+		/*sub++3c*/	dat2mbreg(&reg_tbl[base+sub++],meterData[i].m_cF);//short
+		/*sub++3d*/	dat2mbreg(&reg_tbl[base+sub++],meterData[i].m_Ue);
+		/*sub++3e*/	dat2mbreg(&reg_tbl[base+sub++],meterData[i].m_Ie);
+		/*sub++3f*/	dat2mbreg(&reg_tbl[base+sub++]
 					  ,meterData[i].Flag_P3L4,meterData[i].FLAG_LP);
-		/*0x0040*/	dat2mbreg(&reg_tbl[addr+0x40]
+		/*sub++40*/	dat2mbreg(&reg_tbl[base+sub++]
 					  ,meterData[i].FLAG_TIME,meterData[i].m_cMtrnunmb);
-		/*0x0041*/	dat2mbreg(&reg_tbl[addr+0x41]
+		/*sub++41*/	dat2mbreg(&reg_tbl[base+sub++]
 					  ,meterData[i].m_cCommflag,meterData[i].m_comflag_first);
-		/*0x0042*/	dat2mbreg(&reg_tbl[addr+0x42]
+		/*sub++42*/	dat2mbreg(&reg_tbl[base+sub++]
 					  ,meterData[i].m_cADDR[0],meterData[i].m_cADDR[1]);
-		/*0x0043*/	dat2mbreg(&reg_tbl[addr+0x43]
+		/*sub++43*/	dat2mbreg(&reg_tbl[base+sub++]
 					  ,meterData[i].m_cADDR[2],meterData[i].m_cADDR[3]);
-		/*0x0044*/	dat2mbreg(&reg_tbl[addr+0x44]
+		/*sub++44*/	dat2mbreg(&reg_tbl[base+sub++]
 					  ,meterData[i].m_cADDR[4],meterData[i].m_cADDR[5]);
-		/*0x0045*/	dat2mbreg(&reg_tbl[addr+0x45]
+		/*sub++45*/	dat2mbreg(&reg_tbl[base+sub++]
 					  ,meterData[i].m_com_Pwd[0],meterData[i].m_com_Pwd[1]);
-		/*0x0046*/	dat2mbreg(&reg_tbl[addr+0x46]
+		/*sub++46*/	dat2mbreg(&reg_tbl[base+sub++]
 					  ,meterData[i].m_com_Pwd[2],meterData[i].m_com_Pwd[3]);
-		/*0x0047*/	dat2mbreg(&reg_tbl[addr+0x47]
+		/*sub++47*/	dat2mbreg(&reg_tbl[base+sub++]
 					  ,meterData[i].m_cPortplan,meterData[i].m_cProt);
-		/*0x0048*/	dat2mbreg(&reg_tbl[addr+0x48]
+		/*sub++48*/	dat2mbreg(&reg_tbl[base+sub++]
 					  ,meterData[i].m_time[0],meterData[i].m_time[1]);
-		/*0x0049*/	dat2mbreg(&reg_tbl[addr+0x49]
+		/*sub++49*/	dat2mbreg(&reg_tbl[base+sub++]
 					  ,meterData[i].m_time[2],meterData[i].m_time[3]);
-		/*0x004a*/	dat2mbreg(&reg_tbl[addr+0x4a]
+		/*sub++4a*/	dat2mbreg(&reg_tbl[base+sub++]
 					  ,meterData[i].m_time[4],meterData[i].m_time[5]);
-		/*0x004b*/	dat2mbreg(&reg_tbl[addr+0x4b]
+		/*sub++4b*/	dat2mbreg(&reg_tbl[base+sub++]
 					  ,meterData[i].m_time[6],0);
+		printf("endline: %d sub=0x%X\n",__LINE__,sub);
 
 	}
 
@@ -792,26 +843,38 @@ int Cmbap::map_dat2reg(u16  reg_tbl[0xFFFF]
 	return 0;
 }
 //对应 0x10操作,把值从寄存器赋值给结构体变量
-int Cmbap::map_reg2dat(u16  reg_tbl[0xFFFF]
+int Cmbap::map_reg2dat(u16  reg_tbl[0xFFFF+1]
 		       ,stMeter_Run_data meterData[]
 		       ,const struct mb_write_req_pdu request_pdu) const
 {
 	int i;int addr;
 	u16 start_addr=u16((request_pdu.start_addr_hi<<8)+request_pdu.start_addr_lo);
+	u16 reg_quantity=u16((request_pdu.reg_quantity_hi<<8)+request_pdu.reg_quantity_lo);
 	unsigned char meter_no=u8((start_addr & 0xFF00)>>8);
 	unsigned char sub_id=u8((start_addr & 0xFF));
-	u16 end_addr=u16((request_pdu.reg_quantity_hi<<8)+request_pdu.reg_quantity_lo);
+	u16 end_addr=u16(start_addr+reg_quantity-1);
 	unsigned char meter_no_e=u8((end_addr & 0xFF00)>>8);
-	for(i=meter_no;i<meter_no_e;i++){ //循环 表号
-		addr=(i<<8);
-		switch(sub_id){ //每个表的 子寄存器地址
-		case 0x00:dat2mbreg_lo16bit(&reg_tbl[addr+0x00],meterData[i].Flag_Meter);
-			if((i<<8 & 0x00) ==end_addr) goto OK;
-		case 0x01:dat2mbreg_hi16bit(&reg_tbl[addr+0x01],meterData[i].Flag_Meter);
-			if((i<<8 & 0x01) ==end_addr) goto OK;
-		}
+	meterData[0].Flag_Meter=0x87654321;
+	printf("start_addr=0x%X meter_no=0x%X sub_id=0x%X end_addr=0x%X meter_no_e=%X"
+	       ,start_addr,meter_no,sub_id,end_addr,meter_no_e);
+	i=meter_no; //循环 表号
+	addr=(i<<8);
+	switch(sub_id){ //每个表的 子寄存器地址
+begin:case 0x00:dat2mbreg_lo16bit(&reg_tbl[addr+0x00],meterData[i].Flag_Meter,1);
+		if((addr + 0x00) >= end_addr) goto OK;
+	case 0x01:dat2mbreg_hi16bit(&reg_tbl[addr+0x01],meterData[i].Flag_Meter,1);
+		if((addr + 0x01) >= end_addr) goto OK;
+	case 0x02:dat2mbreg_lo16bit(&reg_tbl[addr+0x02],meterData[i].Flag_TOU,1);
+		if((addr + 0x02) >= end_addr) goto OK;
+	case 0x03:dat2mbreg_hi16bit(&reg_tbl[addr+0x03],meterData[i].Flag_TOU,1);
+		if((addr + 0x03) >= end_addr) goto OK;
 	}
+	i++;
+	addr=(i<<8);
+	goto begin;
 OK:
+	printf("meterData[1].Flag_Meter=0x%X meterData[0].Flag_TOU=%d \n"
+	       ,meterData[1].Flag_Meter,meterData[0].Flag_TOU);
 	return 0;
 }
 /* 参考文档:

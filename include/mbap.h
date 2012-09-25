@@ -34,12 +34,14 @@ class Cmbap :public CProtocol
 public:
 	Cmbap();
 	~Cmbap();
+	int Init(struct stPortConfig *tmp_portcfg);
 	void SendProc(void);
 	int ReciProc(void);
 	void m_BroadcastTime(void);
 	//int Init(struct stPortConfig *tmp_portcfg);
 	/************************** 成员变量 ****************************/
 private:
+	u8 slave_ID;//从站ID
 	//请求
 	struct mbap_head req_mbap;//请求头
 	struct mb_read_req_pdu read_req_pdu;//读请求体
@@ -106,8 +108,8 @@ private://各种打印:	mbap头, 请求pdu
 	void print_rsp_pdu(const mb_excep_rsp_pdu excep_respond_pdu)const;//异常
 	void print_pdu_dat(const u8 pdu_dat[],u8 bytecount)const;//0x06/0x10数据体
 private://实用函数 将各种类型转换成为 16位modbus寄存器类型
-	void dat2mbreg_hi16bit(u16 reg[1],const unsigned int dat32, int dir) const;
-	void dat2mbreg_lo16bit(u16 reg[1],const unsigned int dat32) const;
+	void dat2mbreg_hi16bit(u16 reg[1],unsigned int &dat32, int dir) const;
+	void dat2mbreg_lo16bit(u16 reg[1],unsigned int &dat32, int dir) const;
 	void dat2mbreg_hi16bit(u16 reg[1],const signed int  dat32) const;
 	void dat2mbreg_lo16bit(u16 reg[1],const signed int  dat32) const;
 	void dat2mbreg_hi16bit(u16 reg[1],const float float32) const;
@@ -116,7 +118,7 @@ private://实用函数 将各种类型转换成为 16位modbus寄存器类型
 	void dat2mbreg(u16 reg[1],const char high_byte,const char low_byte) const;
 	int map_dat2reg(u16 reg_tbl[0xFFFF],stMeter_Run_data meterData[]
 			, const mb_read_req_pdu request_pdu)const;
-	int map_reg2dat(u16  reg_tbl[0xFFFF]
+	int map_reg2dat(u16 reg_tbl[]
 			       ,stMeter_Run_data meterData[]
 			       ,const struct mb_write_req_pdu request_pdu) const;
 
