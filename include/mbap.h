@@ -48,10 +48,10 @@ private:
 	struct mbap_head rsp_mbap;//回应头
 	struct mb_read_rsp_pdu read_rsp_pdu;//读响应体-头
 	struct mb_write_rsp_pdu write_rsp_pdu;//写响应体-头
-	rsp_dat ppdu_dat[255];//指向(响应体-数据部分)的指针
+	rsp_dat ppdu_dat[256];//指向(响应体-数据部分)的指针
 	struct mb_excep_rsp_pdu excep_rsp_pdu;//异常响应体-头
-	//所有寄存器表 16位每个 共0xFFFF个
-	u16 reg_table[0xFFFF];
+	//所有寄存器表 16位每个 共0xFFFF+1个
+	u16 reg_table[0xFFFF+1];
 	/************************** 成员函数 ****************************/
 private://输入验证
 	bool verify_msg(u8* m_recvBuf,unsigned short len) const;

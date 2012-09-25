@@ -177,7 +177,7 @@ int Cmbap::ReciProc(void)
 		reg_table[0xfffc]=0x5678;
 		reg_table[0xfffd]=0x9abc;
 		reg_table[0xfffe]=0xdef0;
-		reg_table[0xffff]=u16((ppdu_dat[0]<<8)+ppdu_dat[1]);
+		reg_table[0xffff]=0x1234;//u16((ppdu_dat[0]<<8)+ppdu_dat[1]);
 		//构造报文
 		if(make_msg(this->req_mbap,this->write_req_pdu
 			    ,this->rsp_mbap,this->write_rsp_pdu) != 0){
@@ -197,12 +197,12 @@ int Cmbap::ReciProc(void)
 
 
 /*	发送报文(功能码 0x06) 所有结构都是对于 0x06功能的
-	输入: response_mbap  response_pdu  pdu_dat[255]
+	输入: response_mbap  response_pdu  pdu_dat[256]
 	输出: transBuf(struct)	发送的报文.
 */
 int Cmbap::send_response(const struct mbap_head response_mbap
 			 ,const struct mb_read_rsp_pdu response_pdu
-			 ,const rsp_dat pdu_dat[255]
+			 ,const rsp_dat pdu_dat[256]
 			 ,TransReceiveBuf &transBuf)const
 {
 #ifdef SHOW_SEND_MSG
@@ -292,14 +292,14 @@ int Cmbap::send_excep_response(void)
 		request_pdu  (const)	请求的 pdu
 	输出:	respond_mbap(&mbap_head)响应的 mbap
 		respond_pdu(&mbap_head)	响应的 (正常)pdu
-		pdu_dat (u8[255])	返回报文数据 pdu-dat
+		pdu_dat (u8[256])	返回报文数据 pdu-dat
 	return:	0-成功 other-失败
   */
 int Cmbap::make_msg( const struct mbap_head request_mbap
 		     ,const struct mb_read_req_pdu request_pdu
 		     ,struct mbap_head &respond_mbap
 		     ,struct mb_read_rsp_pdu &respond_pdu
-		     ,u8 pdu_dat[255])const
+		     ,u8 pdu_dat[256])const
 {
 	int i; //构造前的准备工作
 	int start_addr=request_pdu.start_addr_hi*256+request_pdu.start_addr_lo;
@@ -494,7 +494,7 @@ bool Cmbap::verify_funcode(const u8  funcode) const
 bool Cmbap::verify_reg_quantity(const struct mb_read_req_pdu request_pdu
 				,int &reg_quantity)const
 {
-	reg_quantity=request_pdu.reg_quantity_hi*255+request_pdu.reg_quantity_lo;
+	reg_quantity=(request_pdu.reg_quantity_hi<<8)+request_pdu.reg_quantity_lo;
 	if(reg_quantity<0x0001 || reg_quantity>0x007D){
 		return false;
 	}
@@ -503,7 +503,7 @@ bool Cmbap::verify_reg_quantity(const struct mb_read_req_pdu request_pdu
 bool Cmbap::verify_reg_quantity(const struct mb_write_req_pdu request_pdu
 				,int &reg_quantity)const
 {
-	reg_quantity=request_pdu.reg_quantity_hi*255+request_pdu.reg_quantity_lo;
+	reg_quantity=(request_pdu.reg_quantity_hi<<8)+request_pdu.reg_quantity_lo;
 	if(reg_quantity<0x0001 || reg_quantity>0x007B){
 		return false;
 	}
@@ -521,8 +521,8 @@ bool Cmbap::verify_reg_addr(const struct mb_read_req_pdu request_pdu,
 			    int &start_addr,int &end_addr )const
 {
 	int reg_quantity=0;
-	reg_quantity=request_pdu.reg_quantity_hi*255+request_pdu.reg_quantity_lo;
-	start_addr=request_pdu.start_addr_hi*255+request_pdu.start_addr_lo;
+	reg_quantity=(request_pdu.reg_quantity_hi << 8)+request_pdu.reg_quantity_lo;
+	start_addr=(request_pdu.start_addr_hi << 8) +request_pdu.start_addr_lo;
 	end_addr=start_addr+reg_quantity;
 	// 起始和结束地址[0x0000,0xFFFF]
 	if(start_addr<0x0000 || start_addr >0xFFFF
@@ -535,8 +535,8 @@ bool Cmbap::verify_reg_addr(const struct mb_write_req_pdu request_pdu,
 			    int &start_addr,int &end_addr )const
 {
 	int reg_quantity=0;
-	reg_quantity=request_pdu.reg_quantity_hi*255+request_pdu.reg_quantity_lo;
-	start_addr=request_pdu.start_addr_hi*255+request_pdu.start_addr_lo;
+	reg_quantity=(request_pdu.reg_quantity_hi<<8)+request_pdu.reg_quantity_lo;
+	start_addr=(request_pdu.start_addr_hi<<8)+request_pdu.start_addr_lo;
 	end_addr=start_addr+reg_quantity;
 	// 起始和结束地址[0x0000,0xFFFF]
 	if(start_addr<0x0000 || start_addr >0xFFFF
