@@ -1,6 +1,6 @@
 INCS    =       -I../include -I../../../../include
 LIB	= ../../../../lib
-LIBS    =       -L$(LIB) -lsys_utl
+LIBS    = -L$(LIB) -lsys_utl
 CXX	= arm-linux-g++
 NAME    =       mbap
 SOURCE  =       ../src/mbap.cpp
@@ -13,6 +13,12 @@ wflags  = -O -Wall -Wfloat-equal -Wshadow -Wconversion  -pedantic -ansi \
 debugflag= -g 
 all:$(NAME)
 $(NAME):$(SOURCE)
-	$(CXX) $(LDFALGS) $(CXXFLAGS) -shared $(MARCO) $(INCS) $^ -o $(LIB)/lib$@.so $(LIBS) $(wflags) $(debugflag)
+	$(CXX) $(LDFALGS) $(CXXFLAGS) -shared $(MARCO) $(INCS) \
+	       	$^ -o $(LIB)/lib$@.so -O3 $(LIBS) 
 clean:
 	rm -rf $(LIB)/libmbap.so
+install:
+debug:$(SOURCE)
+	$(CXX) $(LDFALGS) $(CXXFLAGS) -shared $(MARCO) $(INCS) \
+	     $^ -o $(LIB)/libmbap.so $(LIBS) $(wflags) $(debugflag)
+
