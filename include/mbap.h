@@ -22,13 +22,19 @@ extern "C" CProtocol *CreateCProto_Cmbap(void);
 //libmbap 定义的错误消息
 //extern stMeter_Run_data m_meterData[MAXMETER];
 // 调试选项:
-//#define DBG_REG_DAT //强制设置结构体数据,用于寄存器数据(和网络传输)调试
 #define DBG_SHOW_RECI_MSG//在终端显示接收到 消息(报文)
 #define SHOW_SEND_MSG //在终端显示 发送的 消息(报文)
 #define SHOW_SEND_ERR_MSG //在终端显示 发送的 异常 消息(报文)
 //#define READ_DATE_PAND_DBG //显示填充到寄存器的值
 //#define DBG_send_response
 //mbap规约
+#define WARN_IF(EXP)					\
+     do{ if ((EXP))					\
+	     fprintf(stderr, "Warning: " #EXP "\n"); }	\
+     while(0)
+//debug print
+//#define DBG_REG_DAT(something) something
+//#define DP(something) {}
 class Cmbap :public CProtocol
 {
 public:
@@ -41,7 +47,8 @@ public:
 	//int Init(struct stPortConfig *tmp_portcfg);
 	/************************** 成员变量 ****************************/
 private:
-	u8 slave_ID;//从站ID
+	u8 slave_ID;//modbus从站(终端)ID
+	struct stSyspara *sysConfig;//系统参数
 	//请求
 	struct mbap_head req_mbap;//请求头
 	struct mb_read_req_pdu read_req_pdu;//读请求体
@@ -56,7 +63,7 @@ private:
 	u16 reg_table[0xFFFF+1];
 	/************************** 成员函数 ****************************/
 private://输入验证
-	bool verify_msg(u8* m_recvBuf,unsigned short len) const;
+	bool verify_msg(unsigned short len) const;
 	bool verify_mbap(const mbap_head request_mbap) const;
 	bool verify_req_pdu(const struct  mb_read_req_pdu request_pdu,
 			    u8 &errcode)const;

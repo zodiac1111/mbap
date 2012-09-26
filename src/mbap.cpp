@@ -15,11 +15,12 @@
 #include "sys_utl.h"
 #include "log.h"
 #include "mbap.h"
-
+#include "metershm.h"
 /***************************** 接口 ***********************/
 extern "C" CProtocol *CreateCProto_Cmbap(void)
 {
 	//static_assert(sizeof(int) == 4, "Integer sizes expected to be 4");
+
 	return  new Cmbap;
 }
 
@@ -41,18 +42,26 @@ Cmbap::~Cmbap()
 {
 	printf(MB_PERFIX"disconstruct class\n");
 }
+//会被调用
 int Cmbap::Init(struct stPortConfig *tmp_portcfg){
 	if(tmp_portcfg->m_ertuaddr>>8 != 0x00){
 		printf(MB_PERFIX_ERR"Slave ID len is more than 1 Byte"
 		       ",please set less than 0xFF(255)\n");
 		return -2;
 	}
-	this->slave_ID=(unsigned char)tmp_portcfg->m_ertuaddr;
-	printf("slave_ID=%d\n",slave_ID);
+	this->slave_ID=(unsigned char)tmp_portcfg->m_ertuaddr;//终端编号
+	printf(MB_PERFIX"slave_ID=%d\n",slave_ID);
+	class METER_CShareMemory metershm;
+	this->sysConfig = metershm.GetSysConfig();
+	if(sysConfig==NULL){
+		printf(MB_PERFIX_ERR"METER_CShareMemory metershm class\n");
+		return -1;
+	}
+	//printf(MB_PERFIX"meter max quantity=%d\n",sysConfig->meter_num);
 	return 0;
 }
 
-void Cmbap::m_BroadcastTime(void)// 广播(一般协议0x255为广播)
+void Cmbap::m_BroadcastTime(void)// 广播(一般协议从站地址0x255为广播)
 {
 	return;
 }
@@ -90,7 +99,7 @@ int Cmbap::ReciProc(void)
 	}
 	copyfrom_buf(readbuf, &m_recvBuf, len);
 	//验证1 报文验证
-	if(verify_msg(readbuf,len)==false){
+	if( verify_msg(len)==false ){
 		printf(MB_PERFIX_ERR"reci illegal message\n");
 		return 0;
 	}
@@ -98,8 +107,7 @@ int Cmbap::ReciProc(void)
 	//接收完成,进行报文处理:检验,(执行)返回
 	//复制出MBAP头
 	memcpy(&req_mbap,&readbuf[0],sizeof(req_mbap));
-#define SLVER_NUM 2 //TODO 暂时的从站编号,应该检查
-	//检查是否是发送给本从站的
+	//检查slave_ID判断是否是发送给本从站的
 	if(req_mbap.unitindet != slave_ID ){
 		printf("slave_ID=%d req_mbap.unitindet =%d",slave_ID,req_mbap.unitindet );
 		return 0;
@@ -124,7 +132,7 @@ int Cmbap::ReciProc(void)
 	}
 	//根据功能码 判断 复制到不同的 请求pdu.
 	switch (funcode){
-	/******************************************************/
+	/********************** 0x06 ******************************/
 	case MB_FUN_R_HOLD_REG ://读多个保持寄存器
 		memcpy(&read_req_pdu,&readbuf[0]+sizeof(req_mbap)
 		       ,sizeof(read_req_pdu));
@@ -142,8 +150,10 @@ int Cmbap::ReciProc(void)
 			this->send_excep_response(req_mbap,excep_rsp_pdu,m_transBuf);
 			return 0;
 		}
+
 		//构造数据 m_meterData 中复制数据到 reg-table
 		if(this->map_dat2reg(this->reg_table,this-> m_meterData,read_req_pdu) != 0 ){
+
 			// 执行异常
 			this->make_msg_excep(rsp_mbap,excep_rsp_pdu,
 					     read_req_pdu.func_code,
@@ -163,7 +173,7 @@ int Cmbap::ReciProc(void)
 		this->send_response(rsp_mbap,read_rsp_pdu,
 				    &ppdu_dat[0],m_transBuf);
 		break;
-		/******************************************************/
+		/********************** 0x10 *****************************/
 	case MB_FUN_W_MULTI_REG://写多个寄存器 流程:参考文档[3].p31
 		memcpy(&write_req_pdu,&readbuf[0]+sizeof(req_mbap)//pdu
 		       ,sizeof(write_req_pdu));
@@ -191,7 +201,8 @@ int Cmbap::ReciProc(void)
 		//写寄存器操作 (DEMO)
 		start_addr=(write_req_pdu.start_addr_hi<<8)
 				+write_req_pdu.start_addr_lo;
-		reg_quantity=(write_req_pdu.reg_quantity_hi<<8)+write_req_pdu.reg_quantity_lo;
+		reg_quantity=(write_req_pdu.reg_quantity_hi<<8)
+				+write_req_pdu.reg_quantity_lo;
 		for(i=0;i<reg_quantity;i++){
 			reg_table[start_addr+i]=u16((ppdu_dat[i*2+0]<<8)+ppdu_dat[i*2+1]);
 			printf("regtable=%X ;",reg_table[start_addr+i]);
@@ -342,8 +353,6 @@ int Cmbap::make_msg( const struct mbap_head request_mbap
 		printf("%04X = %02X ,%02X\n",reg_table[start_addr+i],pdu_dat[i*2+0],pdu_dat[i*2+1]);
 #endif
 	}
-	//	printf("reg %02X ,%02X\n",pdu_dat[0],pdu_dat[1]);
-	//	printf("reg %02X ,%02X\n",pdu_dat[2],pdu_dat[3]);
 	return 0;
 }
 /*	构建响应 0x10 的返回的报文
@@ -358,7 +367,6 @@ int Cmbap::make_msg( const struct mbap_head request_mbap
 		     ,struct mbap_head &respond_mbap
 		     ,struct mb_write_rsp_pdu &respond_pdu)const
 {
-	//构建mbap  和pdu 并准备发送
 	//mbap
 	respond_mbap.TransID_hi=request_mbap.TransID_hi;//序列高
 	respond_mbap.TransID_lo=request_mbap.TransID_lo;//序列低
@@ -389,7 +397,7 @@ int Cmbap::make_msg_excep(struct mbap_head &mbap,
 	return 0;
 }
 //	输入验证 1	:验证信息体(报文),整体长度(大于7+1即合理)
-bool Cmbap::verify_msg(u8* recvBuf, unsigned short len) const
+bool Cmbap::verify_msg( unsigned short len) const
 {
 	if(len<(sizeof(struct mbap_head)+1 /*funcode*/)){
 		printf(MB_PERFIX_ERR"mbap msg len:%d is less than 7.\n",len);
@@ -685,6 +693,7 @@ inline void Cmbap::print_pdu_dat( const u8 pdu_dat[], u8 bytecount)const
 /*	将一些必要的数据从 stMeter_Run_data 结构体中复制(映射)到
 	reg_table 寄存器表以便读取这些数据
 	TODO: 目前主站请求一次,复制全部变量到寄存器数组,应改进效率!
+	NOTE: modbus寄存器起始地址分清0开始还是1开始.
 	输入:	struct stMeter_Run_data m_meterData[MAXMETER]
 	输出:	u16  reg_table[0xFFFF+1]
 */
@@ -692,88 +701,87 @@ int Cmbap::map_dat2reg(u16  reg_tbl[0xFFFF+1]
 		       ,stMeter_Run_data meterData[]
 		       ,const struct mb_read_req_pdu request_pdu) const
 {
-#ifdef DBG_REG_DAT //测试各种数据类型
-	printf(MB_PERFIX"dat debug:(oct addr)hex addr(date type)=volue(hex)[addr base on ZERO]\n");
-	//folat
-	m_meterData[0]. m_iTOU[0]=1234.56789F;
-	printf(MB_PERFIX"dat debug: get (18)0x0012(float)    = %f \n"
-	       ,m_meterData[0]. m_iTOU[0]);
-	//unsigned int
-	m_meterData[0]. Flag_Meter=1234567890;
-	printf(MB_PERFIX"dat debug: get (0)0x0000(int)       = %d (0x%08X)\n"
-	       ,m_meterData[0]. Flag_Meter,m_meterData[0]. Flag_Meter);
-	//unsigned short
-	m_meterData[0].m_Ie=12345;
-	printf(MB_PERFIX"dat debug: get (62)0x003E(shrot)    = %d (0x%04X)\n"
-	       ,m_meterData[0].m_Ie,m_meterData[0].m_Ie);
-	//unsigned char
-	m_meterData[0].m_cPortplan=0xab; m_meterData[0].m_cProt=0xcd;
-	printf(MB_PERFIX"dat debug: get (71)0x0047(char,char)= %d (0x%X),%d (0x%X) \n"
-	       ,m_meterData[0].m_cPortplan ,m_meterData[0].m_cPortplan
-	       ,m_meterData[0].m_cProt,m_meterData[0].m_cProt);
-#endif
 	int i;int j;
-	int base;u8 sub;// base(表序号)+sub(项序号)=地址
+	int base;u8 sub=0;// base(表序号)+sub(项序号)=地址
 #if 1
-	//(复制所有变量)
-	//for (i=0;i<1;i++) {
-	for (i=0;i<MAXMETER;i++) {
+	//printf("%d\n",sysConfig->meter_num);
+	for (i=0;i<sysConfig->meter_num;i++) {//(复制所有变量)
 		base=(i<<8);//高字节表示表号,分辨各个不同的表,范围[0,MAXMETER]
 		sub=0;//子域,某个表的特定参数
-		//低字节表示各种数据,modbus寄存器16位,所以int型占用两个寄存器
-		//printf("line: %d sub=0x%X\n",__LINE__,sub);
-		//总电量 2*2=4
-		//分时电量 2*2*5=20
-//		printf("line: %d sub=0x%X\n",__LINE__,sub);
+		//分时电量 包含总电量 4*5=20
+		//printf("m_iTOU start at line: %d sub=0x%X(%d)\n",__LINE__,sub,sub);
+		for(j=0;j<TOUNUM;j++){
+			dat2mbreg_lo16bit(&reg_tbl[base+sub++],meterData[i].m_iTOU[j]);
+			dat2mbreg_hi16bit(&reg_tbl[base+sub++],meterData[i].m_iTOU[j]);
+			//printf("meterData[%d].m_iTOU[%d]=%f\n",i,j,meterData[i].m_iTOU[j]);
+		}
+		//象限无功电能 4*5=20
+		//printf("m_iQR start at line: %d sub=0x%X(%d)\n",__LINE__,sub,sub);
+		for(j=0;j<TOUNUM;j++){ //
+			dat2mbreg_lo16bit(&reg_tbl[base+sub++],meterData[i].m_iQR[j]);
+			dat2mbreg_hi16bit(&reg_tbl[base+sub++],meterData[i].m_iQR[j]);
+			//printf("meterData[%d].m_iQR[%d]=%f\n",i,j,meterData[i].m_iQR[j]);
+		}
+		//最大需量 2*2*5=20
+		//printf("m_iMaxN start at line: %d sub=0x%X(%d)\n",__LINE__,sub,sub);
 		for(j=0;j<TOUNUM;j++){ //
 			dat2mbreg_lo16bit(&reg_tbl[base+sub++],meterData[i].m_iMaxN[j]);
 			dat2mbreg_hi16bit(&reg_tbl[base+sub++],meterData[i].m_iMaxN[j]);
+			//printf("meterData[%d].m_iMaxN[%d]=%f\n",i,j,meterData[i].m_iMaxN[j]);
 		}
-		//象限无功电能 4*5=20
-//		printf("line: %d sub=0x%X\n",__LINE__,sub);
-		for(j=0;j<TOUNUM;j++){ //
-			dat2mbreg_lo16bit(&reg_tbl[base+sub++],meterData[i].m_iQR_lm[j]);
-			dat2mbreg_hi16bit(&reg_tbl[base+sub++],meterData[i].m_iQR_lm[j]);
-		}
-		//最大需量 2*2*5=20
-//		printf("line: %d sub=0x%X\n",__LINE__,sub);
-		for(j=0;j<TOUNUM;j++){ //
-			dat2mbreg_lo16bit(&reg_tbl[base+sub++],meterData[i].m_iMaxNT[j]);
-			dat2mbreg_hi16bit(&reg_tbl[base+sub++],meterData[i].m_iMaxNT[j]);
-		}
-		//瞬时量 3*5+3 ((18))
+		//瞬时量 3+3
+		//printf("Voltage start at line: %d sub=0x%X(%d)\n",__LINE__,sub,sub);
 		for(j=0;j<PHASENUM;j++){//电压abc
 			dat2mbreg_lo16bit(&reg_tbl[base+sub++],meterData[i].m_wU[j]);
 			dat2mbreg_hi16bit(&reg_tbl[base+sub++],meterData[i].m_wU[j]);
+			//printf("meterData[%d].m_wU[%d]=%f\n",i,j,meterData[i].m_wU[j]);
 		}
+		//printf("Current start at line: %d sub=0x%X(%d)\n",__LINE__,sub,sub);
 		for(j=0;j<PHASENUM;j++){//电流abc
 			dat2mbreg_lo16bit(&reg_tbl[base+sub++],meterData[i].m_wI[j]);
 			dat2mbreg_hi16bit(&reg_tbl[base+sub++],meterData[i].m_wI[j]);
+			//printf("meterData[%d].m_wI[%d]=%f\n",i,j,meterData[i].m_wI[j]);
 		}
-		for(j=0;j<PQCNUM;j++){//有功 /无功 /功率因数|总,a,b,c
-			dat2mbreg_lo16bit(&reg_tbl[base+sub++],meterData[i].m_wQ[j]);
-			dat2mbreg_hi16bit(&reg_tbl[base+sub++],meterData[i].m_wQ[j]);
-		}
-		for(j=0;j<PQCNUM;j++){//
+		//有功 /无功 /功率因数|总,a,b,c
+		//printf("m_iP start at line: %d sub=0x%X(%d)\n",__LINE__,sub,sub);
+		for(j=0;j<PQCNUM;j++){//有功
 			dat2mbreg_lo16bit(&reg_tbl[base+sub++],meterData[i].m_iP[j]);
 			dat2mbreg_hi16bit(&reg_tbl[base+sub++],meterData[i].m_iP[j]);
+			//printf("meterData[%d].m_iP[%d]=%f\n",i,j,meterData[i].m_iP[j]);
 		}
-		for(j=0;j<PQCNUM;j++){//
+		//printf("m_wQ start at line: %d sub=0x%X(%d)\n",__LINE__,sub,sub);
+		for(j=0;j<PQCNUM;j++){//无功
+			dat2mbreg_lo16bit(&reg_tbl[base+sub++],meterData[i].m_wQ[j]);
+			dat2mbreg_hi16bit(&reg_tbl[base+sub++],meterData[i].m_wQ[j]);
+			//printf("meterData[%d].m_wQ[%d]=%f\n",i,j,meterData[i].m_wQ[j]);
+		}
+		//printf("m_wPF start at line: %d sub=0x%X(%d)\n",__LINE__,sub,sub);
+		for(j=0;j<PQCNUM;j++){//功率因数
 			dat2mbreg_lo16bit(&reg_tbl[base+sub++],meterData[i].m_wPF[j]);
 			dat2mbreg_hi16bit(&reg_tbl[base+sub++],meterData[i].m_wPF[j]);
+			//printf("meterData[%d].m_wPF[%d]=%f\n",i,j,meterData[i].m_wPF[j]);
 		}
-		printf("line: %d sub=0x%X\n",__LINE__,sub);
+		for(j=0;j<PQCNUM;j++){//保留4个32位寄存器,可能需要
+			dat2mbreg_lo16bit(&reg_tbl[base+sub++],(int)0xFFFFFFFF);
+			dat2mbreg_hi16bit(&reg_tbl[base+sub++],(int)0xFFFFFFFF);
+		}
+		//printf("m_wPBCountstart at  line: %d sub=0x%X(%d)\n",__LINE__,sub,sub);
 		//断相记录 4(abc总)*2(次数,时间)
 		for(j=0;j<PQCNUM;j++){//
 			dat2mbreg_lo16bit(&reg_tbl[base+sub++],meterData[i].m_wPBCount[j]);
 			dat2mbreg_hi16bit(&reg_tbl[base+sub++],meterData[i].m_wPBCount[j]);
+			//printf("meterData[%d].m_wPBCount[%d]=%d\n",i,j,meterData[i].m_wPBCount[j]);
+
 		}
-		printf("line: %d sub=0x%X\n",__LINE__,sub);
+		//断相总时间
+		//printf("m_iPBTotalTime start at line: %d sub=0x%X(%d)\n",__LINE__,sub,sub);
 		for(j=0;j<PQCNUM;j++){//
 			dat2mbreg_lo16bit(&reg_tbl[base+sub++],meterData[i].m_iPBTotalTime[j]);
 			dat2mbreg_hi16bit(&reg_tbl[base+sub++],meterData[i].m_iPBTotalTime[j]);
+			//printf("meterData[%d].m_iPBTotalTime[%d]=%d\n",i,j,meterData[i].m_iPBTotalTime[j]);
 		}
-		//其他:
+
+#if 0		//其他:
 		dat2mbreg(&reg_tbl[base+sub++],meterData[i].m_cF);//short
 		dat2mbreg(&reg_tbl[base+sub++],meterData[i].m_Ue);
 		dat2mbreg(&reg_tbl[base+sub++],meterData[i].m_Ie);
@@ -804,17 +812,16 @@ int Cmbap::map_dat2reg(u16  reg_tbl[0xFFFF+1]
 		dat2mbreg(&reg_tbl[base+sub++]
 			  ,meterData[i].m_time[6],0);
 
-
-	}
-	printf("endline: %d sub=0x%X\n",__LINE__,sub);
 #endif
-	//	for(i=0;i<10;i++)
-	//		printf("%02X ",reg_tbl[i]);
+	}//end for
+	//printf("bytes of one loop ,endline: %d sub=0x%X\n",__LINE__,sub);
+#endif
 
-	//printf(MB_PERFIX"map dat to reg,ok.\n");
 	return 0;
 }
-//对应 0x10操作,把值从寄存器赋值给结构体变量
+/*对应 0x10操作,把值从寄存器赋值给结构体变量
+	预留的备用(扩展)功能
+*/
 int Cmbap::map_reg2dat(u16  reg_tbl[0xFFFF+1]
 		       ,stMeter_Run_data meterData[]
 		       ,const struct mb_write_req_pdu request_pdu) const
