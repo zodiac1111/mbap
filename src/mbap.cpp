@@ -1,8 +1,7 @@
 /*
 	mdap.cpp:ModBus Application Protocol
 	libmbap.so
-	就实现了:0x06(读多个保持16位寄存器)
-	TODO:	 0x10(写多个16位寄存器)
+	当前仅实现了:0x06(读多个保持16位寄存器)
 	功能码.
 */
 #include <string.h>
@@ -20,21 +19,11 @@
 extern "C" CProtocol *CreateCProto_Cmbap(void)
 {
 	//static_assert(sizeof(int) == 4, "Integer sizes expected to be 4");
-
 	return  new Cmbap;
 }
 
 Cmbap::Cmbap()
 {
-	//	printf(MB_PERFIX"construct class\n");
-	//	r[0]=&(m_meterData[0].Flag_Meter); //int
-	//	r[4]=&(m_meterData[0].FLAG_LP); //char
-	//	r[5]=&(m_meterData[0].FLAG_TIME); //char
-	//	r[6]=&(m_meterData[0].m_iTOU[0]); //float
-	//	//r[0]=&meterData[0].Flag_Meter;
-	//	m_meterData[0].Flag_Meter=12345678;
-	//	printf
-	//	*(int *)r[0]=87654321;
 
 }
 
@@ -79,8 +68,8 @@ void Cmbap::SendProc(void)
 	该模式是传统modbus/串口和modbus/tcp都有的.
 	接收->分析->执行->返回 均由本函数实现
 	分析/验证:由 verify_* 函数完成
-	执行:	map_dat2reg
-	构造报文: make_*_msg
+	执行:	map_dat2reg(0x06) / map_reg2dat(0x10,未完成)
+	构造报文: make_msg[_excep]
 	返回:		response_*
 */
 int Cmbap::ReciProc(void)
@@ -112,7 +101,7 @@ int Cmbap::ReciProc(void)
 		printf("slave_ID=%d req_mbap.unitindet =%d",slave_ID,req_mbap.unitindet );
 		return 0;
 	}
-	//验证2 mbap头验证
+	//验证 mbap头
 	if(this->verify_mbap(req_mbap) == false){
 		printf(MB_PERFIX_ERR"verify_mbap\n");
 		return 0;
@@ -121,14 +110,14 @@ int Cmbap::ReciProc(void)
 	printf(MB_PERFIX"<<< Reci form master:");
 	print_mbap(req_mbap);fflush(stdout);//stdout为行缓存设备,强制刷新
 #endif
-	//验证:功能码,
+	//验证 功能码,
 	u8 funcode=readbuf[sizeof(req_mbap)];
 	if(verify_funcode(funcode)==false){
 		printf("(%02X|NaN)\n",funcode);
 		printf(MB_PERFIX_ERR ERR_ILLEGAL_FUN_MSG);
 		printf(" function code: 0x%02X.\n",funcode);
 		make_msg_excep(rsp_mbap,excep_rsp_pdu,funcode,ERR_ILLEGAL_FUN);
-		send_excep_response(req_mbap,excep_rsp_pdu,m_transBuf);
+		send_response_excep(req_mbap,excep_rsp_pdu,m_transBuf);
 	}
 	//根据功能码 判断 复制到不同的 请求pdu.
 	switch (funcode){
@@ -147,7 +136,7 @@ int Cmbap::ReciProc(void)
 			this->make_msg_excep(rsp_mbap,excep_rsp_pdu,
 					     read_req_pdu.func_code,errcode);
 			//发送
-			this->send_excep_response(req_mbap,excep_rsp_pdu,m_transBuf);
+			this->send_response_excep(req_mbap,excep_rsp_pdu,m_transBuf);
 			return 0;
 		}
 
@@ -159,7 +148,7 @@ int Cmbap::ReciProc(void)
 					     read_req_pdu.func_code,
 					     ERR_SLAVE_DEVICE_FAILURE);
 			//发送
-			this->send_excep_response(req_mbap,excep_rsp_pdu,m_transBuf);
+			this->send_response_excep(req_mbap,excep_rsp_pdu,m_transBuf);
 			return 0;
 		}
 		//构造报文
@@ -187,7 +176,7 @@ int Cmbap::ReciProc(void)
 			this->make_msg_excep(rsp_mbap,excep_rsp_pdu,
 					     write_req_pdu.func_code,errcode);
 			//发送
-			this->send_excep_response(req_mbap,excep_rsp_pdu,m_transBuf);
+			this->send_response_excep(req_mbap,excep_rsp_pdu,m_transBuf);
 			return 0;
 		}
 		//pdu-dat(set reg as these values)
@@ -295,7 +284,7 @@ int Cmbap::send_response(const struct mbap_head mbap
 	return 0 ;
 }
 //发送异常返回报文
-int Cmbap::send_excep_response(const struct mbap_head mbap,
+int Cmbap::send_response_excep(const struct mbap_head mbap,
 			       const struct mb_excep_rsp_pdu pdu,
 			       struct TransReceiveBuf &transBuf )const
 {
@@ -437,6 +426,32 @@ bool Cmbap::verify_mbap(const struct mbap_head request_mbap) const
 	}
 	return true;
 }
+/*	输入验证
+	验证功能码
+	判断功能码是否非法,未实现的功能也是不合法
+	param : 功能码
+	return: true:通过验证	false:不合法
+*/
+bool Cmbap::verify_funcode(const u8  funcode) const
+{
+	switch (funcode){
+	case MB_FUN_R_COILS:
+		printf(MB_PERFIX_WARN
+		       "Function code: 0x01 read coils maybe on need \n");
+		return false;
+		break;
+	case MB_FUN_R_HOLD_REG:
+		return true;
+		break;
+	case MB_FUN_W_MULTI_REG:
+		return false;
+		break;
+		/* .add other funcode here */
+	default://其他功能码不被支持
+		break;
+	}
+	return false;
+}
 
 /*	输入验证 3 pdu单元,寄存器地址/数量验证
 	验证 req_pdu
@@ -481,34 +496,7 @@ bool Cmbap:: verify_req_pdu(const struct mb_write_req_pdu request_pdu,
 	return true;
 }
 
-
-/*	输入验证 3-1
-	验证功能码
-	判断功能码是否非法,未实现的功能也是不合法
-	param : 功能码
-	return: true:通过验证	false:不合法
-*/
-bool Cmbap::verify_funcode(const u8  funcode) const
-{
-	switch (funcode){
-	case MB_FUN_R_COILS:
-		printf(MB_PERFIX_WARN
-		       "Function code: 0x01 read coils maybe on need \n");
-		return false;
-		break;
-	case MB_FUN_R_HOLD_REG:
-		return true;
-		break;
-	case MB_FUN_W_MULTI_REG:
-		return false;
-		break;
-		/* .add other funcode here */
-	default://其他功能码不被支持
-		break;
-	}
-	return false;
-}
-/*	输入验证 3-2 验证 寄存器数量 是否符合相应的功能码
+/*	输入验证  验证 寄存器数量 是否符合相应的功能码
 	输入:	req_pdu
 	输出:	reg_quantity寄存器数量
 */
@@ -534,7 +522,7 @@ bool Cmbap::verify_reg_quantity(const struct mb_write_req_pdu request_pdu
 	}
 	return true;
 }
-/*	输入验证 3-3 验证 寄存器 地址 是否符合相应的功能码
+/*	输入验证  验证 寄存器 地址 是否符合相应的功能码
 	输入:	req_pdu
 	输出:	start_addr 开始地址 end_addr 结束地址
 */
@@ -564,29 +552,28 @@ bool Cmbap::verify_reg_addr(const struct mb_write_req_pdu request_pdu,
 			|| end_addr<0x0000 || end_addr >0xFFFF ){
 		return false;
 	}
-
 	return true;
 }
 /********************* 一系列数据格式转换函数 **************************/
 //将32位 int 型数据 转化成为 2个 modbus寄存器(16位)的形式 的高16位
 inline void Cmbap::dat2mbreg_hi16bit(u16 reg[1], unsigned int &dat32,int dir=0) const
 {
-	if(dir==0){
-		reg[0]=u16((dat32 & 0xFFFF0000)>>16);//高16bit
-	}else{
-		dat32=(dat32 & 0x0000FFFF) | (reg[0]<<16);
-		printf("dat32=%X reg=%X ",dat32,reg[0]);
-	}
+	//	if(dir==0){
+	reg[0]=u16((dat32 & 0xFFFF0000)>>16);//高16bit
+	//	}else{
+	//		dat32=(dat32 & 0x0000FFFF) | (reg[0]<<16);
+	//		printf("dat32=%X reg=%X ",dat32,reg[0]);
+	//	}
 }
 //将32位 int 型数据 转化成为 2个 modbus寄存器(16位)的形式
 inline void Cmbap::dat2mbreg_lo16bit(u16 reg[1], unsigned int &dat32,int dir=0) const
 {
-	if(dir==0){
-		reg[0]=u16((dat32 & 0x0000FFFF)>>0); //低16bit
-	}else{
-		dat32=(dat32 & 0xFFFF0000) | reg[0];
-		printf("dat32=%X reg=%X ",dat32,reg[0]);
-	}
+	//	if(dir==0){
+	reg[0]=u16((dat32 & 0x0000FFFF)>>0); //低16bit
+	//	}else{
+	//		dat32=(dat32 & 0xFFFF0000) | reg[0];
+	//		printf("dat32=%X reg=%X ",dat32,reg[0]);
+	//	}
 }
 //将32位 in t型数据 转化成为 2个 modbus寄存器(16位)的形式
 inline void Cmbap::dat2mbreg_hi16bit(u16 reg[1],const signed int dat32) const
@@ -691,14 +678,15 @@ inline void Cmbap::print_pdu_dat( const u8 pdu_dat[], u8 bytecount)const
 }
 
 /*	将一些必要的数据从 stMeter_Run_data 结构体中复制(映射)到
-	reg_table 寄存器表以便读取这些数据
-	TODO: 目前主站请求一次,复制全部变量到寄存器数组,应改进效率!
-	NOTE: modbus寄存器起始地址分清0开始还是1开始.
-	输入:	struct stMeter_Run_data m_meterData[MAXMETER]
-	输出:	u16  reg_table[0xFFFF+1]
+	reg_tbl 寄存器表以便读取这些数据
+	输入:	struct stMeter_Run_data meter[MAXMETER]
+	输出:	u16  reg[0xFFFF+1] 寄存器表
+	TODO:	目前主站请求一次,复制全部变量到寄存器数组,稍显浪费.
+		应改进效率,仅复制需要的结构体变量.
+	NOTE:	modbus寄存器起始地址分清0开始还是1开始.
 */
-int Cmbap::map_dat2reg(u16  reg_tbl[0xFFFF+1]
-		       ,stMeter_Run_data meterData[]
+int Cmbap::map_dat2reg(u16  reg[0xFFFF+1]
+		       ,stMeter_Run_data meter[]
 		       ,const struct mb_read_req_pdu request_pdu) const
 {
 	int i;int j;
@@ -706,78 +694,78 @@ int Cmbap::map_dat2reg(u16  reg_tbl[0xFFFF+1]
 #if 1
 	//printf("%d\n",sysConfig->meter_num);
 	for (i=0;i<sysConfig->meter_num;i++) {//(复制所有变量)
-		base=(i<<8);//高字节表示表号,分辨各个不同的表,范围[0,MAXMETER]
-		sub=0;//子域,某个表的特定参数
+		base=(i<<8);	//高字节表示表号,分辨各个不同的表,范围[0,MAXMETER]
+		sub=0;				//子域,某个表的特定参数
 		//分时电量 包含总电量 4*5=20
 		//printf("m_iTOU start at line: %d sub=0x%X(%d)\n",__LINE__,sub,sub);
 		for(j=0;j<TOUNUM;j++){
-			dat2mbreg_lo16bit(&reg_tbl[base+sub++],meterData[i].m_iTOU[j]);
-			dat2mbreg_hi16bit(&reg_tbl[base+sub++],meterData[i].m_iTOU[j]);
+			dat2mbreg_lo16bit(&reg[base+sub++],meter[i].m_iTOU[j]);
+			dat2mbreg_hi16bit(&reg[base+sub++],meter[i].m_iTOU[j]);
 			//printf("meterData[%d].m_iTOU[%d]=%f\n",i,j,meterData[i].m_iTOU[j]);
 		}
 		//象限无功电能 4*5=20
 		//printf("m_iQR start at line: %d sub=0x%X(%d)\n",__LINE__,sub,sub);
 		for(j=0;j<TOUNUM;j++){ //
-			dat2mbreg_lo16bit(&reg_tbl[base+sub++],meterData[i].m_iQR[j]);
-			dat2mbreg_hi16bit(&reg_tbl[base+sub++],meterData[i].m_iQR[j]);
+			dat2mbreg_lo16bit(&reg[base+sub++],meter[i].m_iQR[j]);
+			dat2mbreg_hi16bit(&reg[base+sub++],meter[i].m_iQR[j]);
 			//printf("meterData[%d].m_iQR[%d]=%f\n",i,j,meterData[i].m_iQR[j]);
 		}
 		//最大需量 2*2*5=20
 		//printf("m_iMaxN start at line: %d sub=0x%X(%d)\n",__LINE__,sub,sub);
 		for(j=0;j<TOUNUM;j++){ //
-			dat2mbreg_lo16bit(&reg_tbl[base+sub++],meterData[i].m_iMaxN[j]);
-			dat2mbreg_hi16bit(&reg_tbl[base+sub++],meterData[i].m_iMaxN[j]);
+			dat2mbreg_lo16bit(&reg[base+sub++],meter[i].m_iMaxN[j]);
+			dat2mbreg_hi16bit(&reg[base+sub++],meter[i].m_iMaxN[j]);
 			//printf("meterData[%d].m_iMaxN[%d]=%f\n",i,j,meterData[i].m_iMaxN[j]);
 		}
 		//瞬时量 3+3
 		//printf("Voltage start at line: %d sub=0x%X(%d)\n",__LINE__,sub,sub);
 		for(j=0;j<PHASENUM;j++){//电压abc
-			dat2mbreg_lo16bit(&reg_tbl[base+sub++],meterData[i].m_wU[j]);
-			dat2mbreg_hi16bit(&reg_tbl[base+sub++],meterData[i].m_wU[j]);
+			dat2mbreg_lo16bit(&reg[base+sub++],meter[i].m_wU[j]);
+			dat2mbreg_hi16bit(&reg[base+sub++],meter[i].m_wU[j]);
 			//printf("meterData[%d].m_wU[%d]=%f\n",i,j,meterData[i].m_wU[j]);
 		}
 		//printf("Current start at line: %d sub=0x%X(%d)\n",__LINE__,sub,sub);
 		for(j=0;j<PHASENUM;j++){//电流abc
-			dat2mbreg_lo16bit(&reg_tbl[base+sub++],meterData[i].m_wI[j]);
-			dat2mbreg_hi16bit(&reg_tbl[base+sub++],meterData[i].m_wI[j]);
+			dat2mbreg_lo16bit(&reg[base+sub++],meter[i].m_wI[j]);
+			dat2mbreg_hi16bit(&reg[base+sub++],meter[i].m_wI[j]);
 			//printf("meterData[%d].m_wI[%d]=%f\n",i,j,meterData[i].m_wI[j]);
 		}
 		//有功 /无功 /功率因数|总,a,b,c
 		//printf("m_iP start at line: %d sub=0x%X(%d)\n",__LINE__,sub,sub);
 		for(j=0;j<PQCNUM;j++){//有功
-			dat2mbreg_lo16bit(&reg_tbl[base+sub++],meterData[i].m_iP[j]);
-			dat2mbreg_hi16bit(&reg_tbl[base+sub++],meterData[i].m_iP[j]);
+			dat2mbreg_lo16bit(&reg[base+sub++],meter[i].m_iP[j]);
+			dat2mbreg_hi16bit(&reg[base+sub++],meter[i].m_iP[j]);
 			//printf("meterData[%d].m_iP[%d]=%f\n",i,j,meterData[i].m_iP[j]);
 		}
 		//printf("m_wQ start at line: %d sub=0x%X(%d)\n",__LINE__,sub,sub);
 		for(j=0;j<PQCNUM;j++){//无功
-			dat2mbreg_lo16bit(&reg_tbl[base+sub++],meterData[i].m_wQ[j]);
-			dat2mbreg_hi16bit(&reg_tbl[base+sub++],meterData[i].m_wQ[j]);
+			dat2mbreg_lo16bit(&reg[base+sub++],meter[i].m_wQ[j]);
+			dat2mbreg_hi16bit(&reg[base+sub++],meter[i].m_wQ[j]);
 			//printf("meterData[%d].m_wQ[%d]=%f\n",i,j,meterData[i].m_wQ[j]);
 		}
 		//printf("m_wPF start at line: %d sub=0x%X(%d)\n",__LINE__,sub,sub);
 		for(j=0;j<PQCNUM;j++){//功率因数
-			dat2mbreg_lo16bit(&reg_tbl[base+sub++],meterData[i].m_wPF[j]);
-			dat2mbreg_hi16bit(&reg_tbl[base+sub++],meterData[i].m_wPF[j]);
+			dat2mbreg_lo16bit(&reg[base+sub++],meter[i].m_wPF[j]);
+			dat2mbreg_hi16bit(&reg[base+sub++],meter[i].m_wPF[j]);
 			//printf("meterData[%d].m_wPF[%d]=%f\n",i,j,meterData[i].m_wPF[j]);
 		}
 		for(j=0;j<PQCNUM;j++){//保留4个32位寄存器,可能需要
-			dat2mbreg_lo16bit(&reg_tbl[base+sub++],(int)0xFFFFFFFF);
-			dat2mbreg_hi16bit(&reg_tbl[base+sub++],(int)0xFFFFFFFF);
+			dat2mbreg_lo16bit(&reg[base+sub++],(int)0xFFFFFFFF);
+			dat2mbreg_hi16bit(&reg[base+sub++],(int)0xFFFFFFFF);
 		}
 		//printf("m_wPBCountstart at  line: %d sub=0x%X(%d)\n",__LINE__,sub,sub);
 		//断相记录 4(abc总)*2(次数,时间)
 		for(j=0;j<PQCNUM;j++){//
-			dat2mbreg_lo16bit(&reg_tbl[base+sub++],meterData[i].m_wPBCount[j]);
-			dat2mbreg_hi16bit(&reg_tbl[base+sub++],meterData[i].m_wPBCount[j]);
+			dat2mbreg_lo16bit(&reg[base+sub++],meter[i].m_wPBCount[j]);
+			dat2mbreg_hi16bit(&reg[base+sub++],meter[i].m_wPBCount[j]);
 			//printf("meterData[%d].m_wPBCount[%d]=%d\n",i,j,meterData[i].m_wPBCount[j]);
 
 		}
 		//断相总时间
 		//printf("m_iPBTotalTime start at line: %d sub=0x%X(%d)\n",__LINE__,sub,sub);
 		for(j=0;j<PQCNUM;j++){//
-			dat2mbreg_lo16bit(&reg_tbl[base+sub++],meterData[i].m_iPBTotalTime[j]);
-			dat2mbreg_hi16bit(&reg_tbl[base+sub++],meterData[i].m_iPBTotalTime[j]);
+			dat2mbreg_lo16bit(&reg[base+sub++],meter[i].m_iPBTotalTime[j]);
+			dat2mbreg_hi16bit(&reg[base+sub++],meter[i].m_iPBTotalTime[j]);
 			//printf("meterData[%d].m_iPBTotalTime[%d]=%d\n",i,j,meterData[i].m_iPBTotalTime[j]);
 		}
 
