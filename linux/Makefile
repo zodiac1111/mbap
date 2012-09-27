@@ -4,7 +4,7 @@ LIBS    = -L$(LIB) -lsys_utl
 CXX	= arm-linux-g++
 NAME    =       mbap
 SOURCE  =       ../src/mbap.cpp
-wflags  = -O -Wall -Wfloat-equal -Wshadow -Wconversion    \
+wflags  =  -Wall -Wfloat-equal -Wshadow -Wconversion    \
 		-Wmissing-declarations -Wundef -Wuninitialized -Wcast-align \
 		-Wsign-compare -Wcast-qual -Wwrite-strings -Waggregate-return \
 		-Woverloaded-virtual

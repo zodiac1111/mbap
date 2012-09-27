@@ -18,7 +18,6 @@
 #define MB_PERFIX "[libmbap]"	//用于一般信息 如接收数据
 #define MB_PERFIX_WARN "[libmbap]Warning:"//用于提示 调试或建议信息
 #define MB_PERFIX_ERR "[libmbap]ERR:"	//用于提示 错误信息
-extern "C" CProtocol *CreateCProto_Cmbap(void);
 //libmbap 定义的错误消息
 //extern stMeter_Run_data m_meterData[MAXMETER];
 // 调试选项:
@@ -35,6 +34,7 @@ extern "C" CProtocol *CreateCProto_Cmbap(void);
 //debug print
 //#define DBG_REG_DAT(something) something
 //#define DP(something) {}
+extern "C" CProtocol *CreateCProto_Cmbap(void);
 class Cmbap :public CProtocol
 {
 public:
@@ -44,7 +44,6 @@ public:
 	void SendProc(void);
 	int ReciProc(void);
 	void m_BroadcastTime(void);
-	//int Init(struct stPortConfig *tmp_portcfg);
 	/************************** 成员变量 ****************************/
 private:
 	u8 slave_ID;//modbus从站(终端)ID
@@ -93,7 +92,7 @@ private://输入验证
 	int make_msg_excep(struct mbap_head &mbap,
 			   mb_excep_rsp_pdu &excep_pdu,
 			   u8 func_code, u8 exception_code)const;
-	//发送正常回复,重载
+	//发送正常回复,0x06 0x10
 	int send_response(const mbap_head mbap
 			  ,const mb_read_rsp_pdu pdu
 			  ,const rsp_dat pdu_dat[],
@@ -123,10 +122,11 @@ private://实用函数 将各种类型转换成为 16位modbus寄存器类型
 	void dat2mbreg_lo16bit(u16 reg[1],const float float32) const;
 	void dat2mbreg(u16 reg[1],const short dat16) const;
 	void dat2mbreg(u16 reg[1],const char high_byte,const char low_byte) const;
-	int map_dat2reg(u16 reg[0xFFFF],stMeter_Run_data meter[]
+	//reg map
+	int map_dat2reg(u16 reg[],stMeter_Run_data meter[]
 			, const mb_read_req_pdu request_pdu)const;
 	int map_reg2dat(u16 reg_tbl[]
-			       ,stMeter_Run_data meterData[]
+			       ,stMeter_Run_data meter[]
 			       ,const struct mb_write_req_pdu request_pdu) const;
 
 };
