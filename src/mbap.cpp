@@ -75,12 +75,6 @@ void Cmbap::SendProc(void)
 */
 int Cmbap::ReciProc(void)
 {
-	printf("meter[0].m_wU[0]=%f  \n",m_meterData[0].m_wU[0]);
-	printf("meter[0].m_wU[1]=%f  \n",m_meterData[0].m_wU[1]);
-	printf("meter[0].m_wU[2]=%f  \n",m_meterData[0].m_wU[2]);
-	printf("meter[0].m_wI[0]=%f  \n",m_meterData[0].m_wI[0]);
-	printf("meter[0].m_wI[1]=%f  \n",m_meterData[0].m_wI[1]);
-	printf("meter[0].m_wI[2]=%f  \n",m_meterData[0].m_wI[2]);
 	//printf(MB_PERFIX" into ReciProc\n");
 	unsigned short  len=0;
 	u8 readbuf[260];//TCP MODBUS ADU = 253 bytes+MBAP (7 bytes) = 260 bytes
@@ -704,28 +698,28 @@ int Cmbap::map_dat2reg(u16  reg[0xFFFF+1]
 {
 	int i;int j;
 	int base;u8 sub=0;// base(表序号)+sub(项序号)=地址
-
 #if 1
 	//printf("%d\n",sysConfig->meter_num);
-	for (i=0;i<sysConfig->meter_num;i++) {//(复制所有变量)
+	//for (i=0;i<sysConfig->meter_num;i++) {//(复制所有变量)
+	for (i=0;i<MAXMETER;i++) {//(复制所有变量)
 		base=(i<<8);	//高字节表示表号,分辨各个不同的表,范围[0,MAXMETER]
 		sub=0;				//子域,某个表的特定参数
 		//分时电量 包含总电量 4*5=20
-		printf("m_iTOU start at line: %d sub=0x%X(%d)\n",__LINE__,sub,sub);
+		//printf("m_iTOU start at line: %d sub=0x%X(%d)\n",__LINE__,sub,sub);
 		for(j=0;j<TOUNUM;j++){
 			dat2mbreg_lo16bit(&reg[base+sub],meter[i].m_iTOU[j]);sub++;
 			dat2mbreg_hi16bit(&reg[base+sub],meter[i].m_iTOU[j]);sub++;
 			//printf("meter[%d].m_iTOU[%d]=%f sub=%d \n",i,j,meter[i].m_iTOU[j],sub);
 		}
 		//象限无功电能 4*5=20
-		printf("m_iQR start at line: %d sub=0x%X(%d)\n",__LINE__,sub,sub);
+		//printf("m_iQR start at line: %d sub=0x%X(%d)\n",__LINE__,sub,sub);
 		for(j=0;j<TOUNUM;j++){ //
 			dat2mbreg_lo16bit(&reg[base+sub],meter[i].m_iQR[j]);sub++;
 			dat2mbreg_hi16bit(&reg[base+sub],meter[i].m_iQR[j]);sub++;
 			//printf("meter[%d].m_iQR[%d]=%f sub=%d \n",i,j,meter[i].m_iQR[j],sub);
 		}
 		//最大需量 2*2*5=20
-		printf("m_iMaxN start at line: %d sub=0x%X(%d)\n",__LINE__,sub,sub);
+		//printf("m_iMaxN start at line: %d sub=0x%X(%d)\n",__LINE__,sub,sub);
 		for(j=0;j<TOUNUM;j++){ //
 			//meter[i].m_iMaxN[j]=123.4F;
 			dat2mbreg_lo16bit(&reg[base+sub],meter[i].m_iMaxN[j]);sub++;
@@ -733,45 +727,45 @@ int Cmbap::map_dat2reg(u16  reg[0xFFFF+1]
 			//printf("meter[%d].m_iMaxN[%d]=%f sub=%d \n",i,j,meter[i].m_iMaxN[j],sub);
 		}
 		//瞬时量 3+3
-		printf("Voltage start at line: %d sub=0x%X(%d)\n",__LINE__,sub,sub);
+		//printf("Voltage start at line: %d sub=0x%X(%d)\n",__LINE__,sub,sub);
 		for(j=0;j<PHASENUM;j++){//电压abc
 			dat2mbreg_lo16bit(&reg[base+sub],meter[i].m_wU[j]);sub++;
 			dat2mbreg_hi16bit(&reg[base+sub],meter[i].m_wU[j]);sub++;
 			//printf("meter[%d].m_wU[%d]=%f sub=%d \n",i,j,meter[i].m_wU[j],sub);
 		}
-		printf("Current start at line: %d sub=0x%X(%d)\n",__LINE__,sub,sub);
+		//printf("Current start at line: %d sub=0x%X(%d)\n",__LINE__,sub,sub);
 		for(j=0;j<PHASENUM;j++){//电流abc
 			dat2mbreg_lo16bit(&reg[base+sub],meter[i].m_wI[j]);sub++;
 			dat2mbreg_hi16bit(&reg[base+sub],meter[i].m_wI[j]);sub++;
 			//printf("meter[%d].m_wI[%d]=%f sub=%d \n",i,j,meter[i].m_wI[j],sub);
 		}
 		//有功 /无功 /功率因数|总,a,b,c
-		printf("m_iP start at line: %d sub=0x%X(%d)\n",__LINE__,sub,sub);
+		//printf("m_iP start at line: %d sub=0x%X(%d)\n",__LINE__,sub,sub);
 		for(j=0;j<PQCNUM;j++){//有功
 			dat2mbreg_lo16bit(&reg[base+sub],meter[i].m_iP[j]);sub++;
 			dat2mbreg_hi16bit(&reg[base+sub],meter[i].m_iP[j]);sub++;
 			//printf("meter[%d].m_iP[%d]=%f sub=%d \n",i,j,meter[i].m_iP[j],sub);
 		}
-		printf("m_wQ start at line: %d sub=0x%X(%d)\n",__LINE__,sub,sub);
+		//printf("m_wQ start at line: %d sub=0x%X(%d)\n",__LINE__,sub,sub);
 		for(j=0;j<PQCNUM;j++){//无功
 			dat2mbreg_lo16bit(&reg[base+sub],meter[i].m_wQ[j]);sub++;
 			dat2mbreg_hi16bit(&reg[base+sub],meter[i].m_wQ[j]);sub++;
 			//printf("meter[%d].m_wQ[%d]=%f\n",i,j,meter[i].m_wQ[j]);
 		}
-		printf("m_wPF start at line: %d sub=0x%X(%d)\n",__LINE__,sub,sub);
+		//printf("m_wPF start at line: %d sub=0x%X(%d)\n",__LINE__,sub,sub);
 		for(j=0;j<PQCNUM;j++){//功率因数
 			dat2mbreg_lo16bit(&reg[base+sub],meter[i].m_wPF[j]);sub++;
 			dat2mbreg_hi16bit(&reg[base+sub],meter[i].m_wPF[j]);sub++;
 			//printf("meter[%d].m_wPF[%d]=%f\n",i,j,meter[i].m_wPF[j]);
 		}
-		printf("m_wPF start at line: %d sub=0x%X(%d)\n",__LINE__,sub,sub);
-		for(j=0;j<4;j++){//保留4个32位寄存器,可能需要
+		//printf("m_wPF start at line: %d sub=0x%X(%d)\n",__LINE__,sub,sub);
+		for(j=0;j<4;j++){//保留4个32位寄存器,备用
 			dat2mbreg_lo16bit(&reg[base+sub],(int)0xFFFFFFFF);sub++;
 			dat2mbreg_hi16bit(&reg[base+sub],(int)0xFFFFFFFF);sub++;
 			//printf("0xFFFFFFFF=%x %x \n",reg[base+sub-1],reg[base+sub]);
 		}
 		//断相记录 4(abc总)*2(次数,时间)
-		printf("m_wPBCountstart at  line: %d sub=0x%X(%d)\n",__LINE__,sub,sub);
+		//printf("m_wPBCountstart at  line: %d sub=0x%X(%d)\n",__LINE__,sub,sub);
 		for(j=0;j<PQCNUM;j++){//
 			dat2mbreg_lo16bit(&reg[base+sub],meter[i].m_wPBCount[j]);sub++;
 			dat2mbreg_hi16bit(&reg[base+sub],meter[i].m_wPBCount[j]);sub++;
@@ -779,7 +773,7 @@ int Cmbap::map_dat2reg(u16  reg[0xFFFF+1]
 
 		}
 		//断相总时间
-		printf("m_iPBTotalTime start at line: %d sub=0x%X(%d)\n",__LINE__,sub,sub);
+		//printf("m_iPBTotalTime start at line: %d sub=0x%X(%d)\n",__LINE__,sub,sub);
 		for(j=0;j<PQCNUM;j++){//
 			dat2mbreg_lo16bit(&reg[base+sub],meter[i].m_iPBTotalTime[j]);sub++;
 			dat2mbreg_hi16bit(&reg[base+sub],meter[i].m_iPBTotalTime[j]);sub++;
