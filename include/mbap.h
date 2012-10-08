@@ -46,7 +46,7 @@ public:
 	void m_BroadcastTime(void);
 	/************************** 成员变量 ****************************/
 private:
-	u8 slave_ID;//modbus从站(终端)ID
+	u8 unit_id;//modbus从站(终端)ID
 	struct stSyspara *sysConfig;//系统参数
 	//请求
 	struct mbap_head req_mbap;//请求头
@@ -89,9 +89,10 @@ private://输入验证
 		      ,struct mbap_head &rsp_mbap
 		      ,struct mb_write_rsp_pdu  &respond_pdu)const;
 	//构造异常返回报文
-	int make_msg_excep(struct mbap_head &mbap,
-			   mb_excep_rsp_pdu &excep_pdu,
-			   u8 func_code, u8 exception_code)const;
+	int make_msg_excep(const mbap_head request_mbap,
+			   mbap_head &respond_mbap,
+			   mb_excep_rsp_pdu &excep_pdu
+			   , u8 func_code, u8 exception_code)const;
 	//发送正常回复,0x06 0x10
 	int send_response(const mbap_head mbap
 			  ,const mb_read_rsp_pdu pdu
@@ -128,6 +129,5 @@ private://实用函数 将各种类型转换成为 16位modbus寄存器类型
 	int map_reg2dat(u16 reg_tbl[]
 			       ,stMeter_Run_data meter[]
 			       ,const struct mb_write_req_pdu request_pdu) const;
-
 };
 #endif //__MBAP_H__

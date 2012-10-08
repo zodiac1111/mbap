@@ -1,8 +1,8 @@
 /*
-	mdap.cpp:ModBus Application Protocol
-	libmbap.so
-	当前仅实现了:0x06(读多个保持16位寄存器)
-	功能码.
+	file: mbap.cpp - ModBus Application Protocol
+	库: libmbap.so
+	当前仅实现了:0x06(读多个保持16位寄存器)功能码.
+	所有文档在本文件底部列出.
 */
 #include <string.h>
 #include <stdio.h>
@@ -33,21 +33,20 @@ Cmbap::~Cmbap()
 }
 //会被调用
 int Cmbap::Init(struct stPortConfig *tmp_portcfg){
-	if((tmp_portcfg->m_ertuaddr>>8) != 0x00){
-		printf(MB_PERFIX_ERR
-		       "Slave ID len is more than 1 Byte"
-		       ",please set less than 0xFF(255)\n");
-		return -2;
-	}
-	this->slave_ID=(unsigned char)tmp_portcfg->m_ertuaddr;//终端编号低字节
-	printf(MB_PERFIX"slave_ID=%d\n",slave_ID);
 	class METER_CShareMemory metershm;
 	this->sysConfig = metershm.GetSysConfig();
 	if(sysConfig==NULL){
 		printf(MB_PERFIX_ERR"METER_CShareMemory metershm class\n");
 		return -1;
 	}
-	//printf(MB_PERFIX"meter max quantity=%d\n",sysConfig->meter_num);
+	printf(MB_PERFIX"meter max quantity=%d\n",sysConfig->meter_num);
+
+	//slave addr / unit Identifier in mbap /终端地址 in 终端 (2byte)
+	//现在并没有强制判断这个终端地址
+	unit_id=u8(tmp_portcfg->m_ertuaddr>>8);//high byte of  RTU addr mast be 0
+	printf("RTU addr high byte:%d \n",unit_id);
+	unit_id=(unsigned char)tmp_portcfg->m_ertuaddr; //low byte of RTU mast be 0xFF
+	printf("RTU addr high byte:%d \n",unit_id);
 	return 0;
 }
 
@@ -97,9 +96,13 @@ int Cmbap::ReciProc(void)
 	//接收完成,进行报文处理:检验,(执行)返回
 	//复制出MBAP头
 	memcpy(&req_mbap,&readbuf[0],sizeof(req_mbap));
-	//检查slave_ID判断是否是发送给本从站的
-	if(req_mbap.unitindet != slave_ID ){
-		printf("slave_ID=%d req_mbap.unitindet =%d",slave_ID,req_mbap.unitindet );
+	//验证 mbap unit Identifier 字段,必须为0xFF,否则忽略
+	//不是发给modbus/TCP终端的报文,为发给同区域其他modbus(非TCP)从站的报文
+	//在直连modbusTCP设备的网络中 0做为单元标识也是可以接受的.
+	if( req_mbap.unitindet != 0xff && req_mbap.unitindet != 0x00 ){
+		return 0;
+	}
+	if( unit_id != req_mbap.unitindet ){
 		return 0;
 	}
 	//验证 mbap头
@@ -117,8 +120,8 @@ int Cmbap::ReciProc(void)
 		printf("(%02X|NaN)\n",funcode);
 		printf(MB_PERFIX_ERR ERR_ILLEGAL_FUN_MSG);
 		printf(" function code: 0x%02X.\n",funcode);
-		make_msg_excep(rsp_mbap,excep_rsp_pdu,funcode,ERR_ILLEGAL_FUN);
-		send_response_excep(req_mbap,excep_rsp_pdu,m_transBuf);
+		make_msg_excep(req_mbap,rsp_mbap,excep_rsp_pdu,funcode,ERR_ILLEGAL_FUN);
+		send_response_excep(rsp_mbap,excep_rsp_pdu,m_transBuf);
 	}
 	//根据功能码 判断 复制到不同的 请求pdu.
 	switch (funcode){
@@ -134,22 +137,21 @@ int Cmbap::ReciProc(void)
 		verify_req= verify_req_pdu(read_req_pdu,errcode);
 		if(verify_req==false){
 			//验证错误
-			this->make_msg_excep(rsp_mbap,excep_rsp_pdu,
+			this->make_msg_excep(req_mbap,rsp_mbap,excep_rsp_pdu,
 					     read_req_pdu.func_code,errcode);
 			//发送
-			this->send_response_excep(req_mbap,excep_rsp_pdu,m_transBuf);
+			this->send_response_excep(rsp_mbap,excep_rsp_pdu,m_transBuf);
 			return 0;
 		}
 
 		//构造数据 m_meterData 中复制数据到 reg-table
-		if(this->map_dat2reg(this->reg_table,m_meterData,read_req_pdu) != 0 ){
-
+		if(map_dat2reg(reg_table,m_meterData,read_req_pdu) != 0 ){
 			// 执行异常
-			this->make_msg_excep(rsp_mbap,excep_rsp_pdu,
+			make_msg_excep(req_mbap,rsp_mbap,excep_rsp_pdu,
 					     read_req_pdu.func_code,
 					     ERR_SLAVE_DEVICE_FAILURE);
 			//发送
-			this->send_response_excep(req_mbap,excep_rsp_pdu,m_transBuf);
+			send_response_excep(rsp_mbap,excep_rsp_pdu,m_transBuf);
 			return 0;
 		}
 		//构造报文
@@ -174,10 +176,10 @@ int Cmbap::ReciProc(void)
 		verify_req= verify_req_pdu(write_req_pdu,errcode);
 		if(verify_req==false){
 			//验证错误
-			this->make_msg_excep(rsp_mbap,excep_rsp_pdu,
+			this->make_msg_excep(req_mbap,rsp_mbap,excep_rsp_pdu,
 					     write_req_pdu.func_code,errcode);
 			//发送
-			this->send_response_excep(req_mbap,excep_rsp_pdu,m_transBuf);
+			this->send_response_excep(rsp_mbap,excep_rsp_pdu,m_transBuf);
 			return 0;
 		}
 		//pdu-dat(set reg as these values)
@@ -375,13 +377,17 @@ int Cmbap::make_msg( const struct mbap_head request_mbap
 	respond_pdu.reg_quantity_lo=request_pdu.reg_quantity_lo;
 	return 0;
 }
-//构造异常返回报文
-int Cmbap::make_msg_excep(struct mbap_head &mbap,
+/*构造异常返回报文
+  in: request_mbap 请求头 func_code功能码 exception_code异常值
+  out:&respond_mbap 应答头,&excep_pdu 异常数据单元
+  */
+int Cmbap::make_msg_excep(const struct mbap_head request_mbap,
+			  struct mbap_head &respond_mbap,
 			  struct mb_excep_rsp_pdu &excep_pdu,
 			  u8 func_code, u8 exception_code) const
 {
-	memcpy(&mbap,&req_mbap,sizeof(req_mbap));
-	mbap.len_lo=sizeof(mbap.unitindet)
+	memcpy(&respond_mbap,&request_mbap,sizeof(request_mbap));
+	respond_mbap.len_lo=sizeof(respond_mbap.unitindet)
 			+sizeof(excep_pdu);
 	excep_pdu.exception_func_code=u8(func_code+0x80);
 	excep_pdu.exception_code=exception_code;
@@ -397,13 +403,12 @@ bool Cmbap::verify_msg( unsigned short len) const
 	return true;
 }
 
-/*	输入验证 :验证mbap头的合法性 合法返回 true 否则返回 false
-	ref: http://modbus.control.com/thread/1026162917
+/*	输入验证 :验证mbap头的合法性 合法返回 true 否则返回 false 参考文档4
 */
 bool Cmbap::verify_mbap(const struct mbap_head request_mbap) const
 {
 	//1. 序列号:
-	//	从站:忽略前2个字节,仅仅复制 返回行了
+	//	对于从站,忽略前2个字节,仅仅复制 返回就行了
 	//	对于主站,则需要检查序列号是否时之前自己发送的的序列号.
 	//2. 协议: 0x0000 为 modbus
 	if(!(request_mbap.protocolhead_hi==0x00
@@ -418,13 +423,12 @@ bool Cmbap::verify_mbap(const struct mbap_head request_mbap) const
 		printf(MB_PERFIX_ERR"mbap the length of msg is too long.\n");
 		return false;
 	}
-	//4. 从站编号 [2,253]
-	//verify 6th byte is between 2 to 253. min cmd length is unit id
-	if(!(request_mbap.unitindet>=2 && request_mbap.unitindet<= 253)){
-		printf(MB_PERFIX_ERR"slave address (%d) is out of range.\n"
-		       ,request_mbap.unitindet);
-		return false;
-	}
+	/*4. 从站编号 [2,247(?)]//对于TCP/IP,使用IP地址寻址,这个标识符是无用的
+	建议 /必须使用 0xFF ,在与串口通讯的从站(加网关)一起工作在ip网络时,
+	必须设置成0xFF.以防止该报文被串行通讯的从站设备错误的接收.
+	** 参考文档4,第23页 Unit Identifier 小节
+	*/
+	//放到外面(之前)检测.
 	return true;
 }
 /*	输入验证
@@ -433,7 +437,7 @@ bool Cmbap::verify_mbap(const struct mbap_head request_mbap) const
 	param : 功能码
 	return: true:通过验证	false:不合法
 */
-bool Cmbap::verify_funcode(const u8  funcode) const
+bool Cmbap::verify_funcode( u8  funcode) const
 {
 	switch (funcode){
 	case MB_FUN_R_COILS:
@@ -673,7 +677,7 @@ const
 	       ,respond_pdu.reg_quantity_lo);
 }
 //打印响应pdu数据体
-inline void Cmbap::print_pdu_dat( const u8 pdu_dat[], u8 bytecount)const
+inline void Cmbap::print_pdu_dat(  const u8  pdu_dat[], u8 bytecount)const
 {
 	int i;
 	printf("[");
@@ -700,8 +704,8 @@ int Cmbap::map_dat2reg(u16  reg[0xFFFF+1]
 	int base;u8 sub=0;// base(表序号)+sub(项序号)=地址
 #if 1
 	//printf("%d\n",sysConfig->meter_num);
-	//for (i=0;i<sysConfig->meter_num;i++) {//(复制所有变量)
-	for (i=0;i<MAXMETER;i++) {//(复制所有变量)
+	for (i=0;i<sysConfig->meter_num;i++) {//(复制所有变量)
+	//for (i=0;i<MAXMETER;i++) {//(复制所有变量)
 		base=(i<<8);	//高字节表示表号,分辨各个不同的表,范围[0,MAXMETER]
 		sub=0;				//子域,某个表的特定参数
 		//分时电量 包含总电量 4*5=20

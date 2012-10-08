@@ -14,11 +14,11 @@ debugflag= -g
 all:$(NAME)
 $(NAME):$(SOURCE)
 	$(CXX) $(LDFALGS) $(CXXFLAGS) -shared $(MARCO) $(INCS) \
-		$^ -o $(LIB)/lib$@.so  $(LIBS)
+	$^ -o $(LIB)/lib$@.so  $(LIBS)
 clean:
 	rm -rf $(LIB)/libmbap.so
 install:
 debug:$(SOURCE)
 	$(CXX) $(LDFALGS) $(CXXFLAGS) -shared $(MARCO) $(INCS) \
-	     $^ -o $(LIB)/libmbap.so $(LIBS) $(wflags) $(debugflag)
+	$^ -o $(LIB)/lib$(NAME).so $(LIBS) $(wflags) $(debugflag)
 

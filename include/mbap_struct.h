@@ -55,7 +55,7 @@ struct mbap_head{
 	u8 len_hi;//跟随长度 2字节
 	u8 len_lo;
 	u8 unitindet;//从站/装置识别码 1字节
-}/*_attribute__ ((packed))*/;	//共 2+2+2+1= 7字节
+}__attribute__ ((packed));	//共 2+2+2+1= 7字节
 
 //modbus请求协议数据单元 MODBUS Request PDU( 读多个保持寄存器 功能)
 struct mb_read_req_pdu{
@@ -64,13 +64,13 @@ struct mb_read_req_pdu{
 	u8 start_addr_lo;
 	u8 reg_quantity_hi; //寄存器数目 2字节
 	u8 reg_quantity_lo;
-}/*__attribute__ ((packed))*/;	//共1+2+2=5字节
+}__attribute__ ((packed));	//共1+2+2=5字节
 //(正常)返回单元 MODBUS Response PDU( 读多个保持寄存器 功能)
 struct mb_read_rsp_pdu{
 	u8 func_code;//功能码 1字节
 	u8 byte_count;//返回字节数N 1字节
 	//u8 data * n //n=N or N+1(不能被8整除时,对于线圈操作)
-};//共1+1+N字节
+}__attribute__((packed));//共1+1+N字节
 
 //modbus请求协议数据单元( 写多个保持寄存器 功能)
 struct mb_write_req_pdu{
@@ -81,7 +81,7 @@ struct mb_write_req_pdu{
 	u8 reg_quantity_lo;
 	u8 byte_count;//写字节数
 	/* N*2byte N为寄存器个数 */
-}/*__attribute__ ((packed))*/;	//共1+2+2+1+N*2=6+N*2字节
+}__attribute__((packed));	//共1+2+2+1+N*2=6+N*2字节
 //响应单元 ( 写多个保持寄存器 功能)
 struct mb_write_rsp_pdu{
 	u8 func_code;//功能码 1字节
@@ -89,13 +89,13 @@ struct mb_write_rsp_pdu{
 	u8 start_addr_lo;
 	u8 reg_quantity_hi; //寄存器数目 2字节
 	u8 reg_quantity_lo;
-};//共1+2+2字节
+}__attribute__ ((packed));//共1+2+2字节
 
 //异常 返回单元 MODBUS Exception Response PDU 所有功能格式都一样
 struct mb_excep_rsp_pdu{
 	u8 exception_func_code; //异常功能码 1字节
 	u8 exception_code;//异常值 1字节
-};//共1+1=2字节
+}__attribute__ ((packed));//共1+1=2字节
 
 /*
 The equivalent request to this Modbus RTU example (一般modbus/RTU报文)
