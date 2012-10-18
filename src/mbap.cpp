@@ -428,7 +428,7 @@ bool Cmbap::verify_mbap(const struct mbap_head request_mbap) const
 	必须设置成0xFF.以防止该报文被串行通讯的从站设备错误的接收.
 	** 参考文档4,第23页 Unit Identifier 小节
 	*/
-	//放到外面(之前)检测.
+	//放到外面(ReciProc函数，verify_mbap调用之前)检测.
 	return true;
 }
 /*	输入验证
