@@ -171,7 +171,6 @@ int Cmbap::ReciProc(void)
 		       ,sizeof(write_req_pdu));
 #if SHOW_RECI_MSG
 		print_req_pdu(write_req_pdu);
-
 #endif
 		verify_req= verify_req_pdu(write_req_pdu,errcode);
 		if(verify_req==false) {
@@ -717,7 +716,7 @@ int Cmbap::map_dat2reg(u16  reg[0xFFFF+1]
 	u8 sub=0;// base(表序号)+sub(项序号)=地址
 	//printf("%d\n",sysConfig->meter_num);
 	for (i=0; i<sysConfig->meter_num; i++) {
-		//for (i=0;i<MAXMETER;i++) {//(复制所有变量)
+//		for (i=0;i<MAXMETER;i++) {//(复制所有变量)
 		base=(i<<8);	//高字节表示表号,分辨各个不同的表,范围[0,MAXMETER]
 		sub=0;				//子域,某个表的特定参数
 #if DEBUG_REG_MAP
