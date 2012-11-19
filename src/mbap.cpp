@@ -24,16 +24,19 @@ extern "C" CProtocol *CreateCProto_Cmbap(void)
 
 Cmbap::Cmbap()
 {
+	//printf(MB_PERFIX"construct class\n");
 }
 
 Cmbap::~Cmbap()
 {
 	//printf(MB_PERFIX"disconstruct class\n");
 }
-//会被调用
+/* 实例化时被主程序调用一次
+  in: tmp_portcfg 端口信息结构体,终端地址.
+*/
 int Cmbap::Init(struct stPortConfig *tmp_portcfg)
 {
-	class METER_CShareMemory metershm;
+	class METER_CShareMemory metershm;//从共享内存中得到表数量(耦合)
 	this->sysConfig = metershm.GetSysConfig();
 	if(sysConfig==NULL) {
 		printf(MB_PERFIX_ERR"METER_CShareMemory metershm class\n");
@@ -44,8 +47,17 @@ int Cmbap::Init(struct stPortConfig *tmp_portcfg)
 	//现在并没有强制判断这个终端地址
 	unit_id=u8(tmp_portcfg->m_ertuaddr>>8);//high byte of  RTU addr mast be 0
 	printf(MB_PERFIX"RTU addr high byte:%d \n",unit_id);
+	if(unit_id!=0){
+		return -1;
+	}
 	unit_id=(unsigned char)tmp_portcfg->m_ertuaddr; //low byte of RTU mast be 0xFF
 	printf(MB_PERFIX"RTU addr low byte:%d \n",unit_id);
+	std::cout<<"Flag_TOU="<<m_meterData[0].Flag_TOU<<"\n"
+		<<"m_meterData[0].m_iTOU[0]="<< m_meterData[0].m_iTOU[0]<<"\n"
+	       <<"m_meterData[0].Flag_QR="<< m_meterData[0].Flag_QR<<"\n"
+	      <<"m_meterData[0].Flag_Meter="<< m_meterData[0].Flag_Meter<<"\n"
+
+		<<std::endl;
 	return 0;
 }
 
@@ -65,15 +77,16 @@ void Cmbap::SendProc(void)
 
 /*	从站接收主站的接收函数:
 	该模式是传统modbus/串口和modbus/tcp都有的.
-	接收->分析->执行->返回 均由本函数实现
-	分析/验证:由 verify_* 函数完成
-	执行:	map_dat2reg(0x06) / map_reg2dat(0x10,未完成)
-	构造报文: make_msg[_excep]
+	接收->分析->执行->返回(发送给主站) 均由本函数实现
+	分析/验证:	由 verify_* 函数完成
+	执行:		map_dat2reg(0x06) / map_reg2dat(0x10,未完成)
+	构造报文:	make_msg[_excep]
 	返回:		response_*
 */
 int Cmbap::ReciProc(void)
 {
 	//printf(MB_PERFIX" into ReciProc\n");
+	//printf(".");fflush(stdout);
 	unsigned short  len=0;
 	u8 readbuf[260];//TCP MODBUS ADU = 253 bytes+MBAP (7 bytes) = 260 bytes
 	bool verify_req=false;
@@ -99,9 +112,9 @@ int Cmbap::ReciProc(void)
 	if( unit_id != req_mbap.unitindet ) { //忽略不是发往本站的报文
 		return 0;
 	}
-	//验证 mbap unit Identifier 字段,必须为0xFF,否则忽略
-	//不是发给modbus/TCP终端的报文,为发给同区域其他modbus(非TCP)从站的报文
-	//在直连modbusTCP设备的网络中 0做为单元标识也是可以接受的.
+	/* 验证 mbap unit Identifier 字段,必须为0xFF,否则忽略
+	不是发给modbus/TCP终端的报文,为发给同区域其他modbus(非TCP)从站的报文
+	在直连modbusTCP设备的网络中 0做为单元标识也是可以接受的. */
 	if( req_mbap.unitindet != 0xff && req_mbap.unitindet != 0x00 ) {
 		return 0;
 	}
@@ -139,7 +152,7 @@ int Cmbap::ReciProc(void)
 		if(verify_req==false) {
 			//验证错误
 			this->make_msg_excep(req_mbap,rsp_mbap,excep_rsp_pdu,
-			                     read_req_pdu.func_code,errcode);
+					     read_req_pdu.func_code,errcode);
 			//发送
 			this->send_response_excep(rsp_mbap,excep_rsp_pdu,m_transBuf);
 			return 0;
@@ -148,25 +161,25 @@ int Cmbap::ReciProc(void)
 		if(map_dat2reg(reg_table,m_meterData,read_req_pdu) != 0 ) {
 			// 执行异常
 			make_msg_excep(req_mbap,rsp_mbap,excep_rsp_pdu,
-			               read_req_pdu.func_code,
-			               ERR_SLAVE_DEVICE_FAILURE);
+				       read_req_pdu.func_code,
+				       ERR_SLAVE_DEVICE_FAILURE);
 			//发送
 			send_response_excep(rsp_mbap,excep_rsp_pdu,m_transBuf);
 			return 0;
 		}
 		//构造报文
 		if(make_msg(this->req_mbap,this->read_req_pdu
-		            ,this->rsp_mbap,this->read_rsp_pdu
-		            ,this->ppdu_dat) != 0) {
+			    ,this->rsp_mbap,this->read_rsp_pdu
+			    ,this->ppdu_dat) != 0) {
 			printf(MB_PERFIX_ERR"make msg\n");
 			return 0;
 		}
 		//发送
 		this->send_response(rsp_mbap,read_rsp_pdu,
-		                    &ppdu_dat[0],m_transBuf);
+				    &ppdu_dat[0],m_transBuf);
 		break;
 		/********************** 0x10 *****************************/
-	case MB_FUN_W_MULTI_REG://写多个寄存器 流程:参考文档[3].p31
+	case MB_FUN_W_MULTI_REG://写多个寄存器 流程:参考文档[3].p31 TODO
 		memcpy(&write_req_pdu,&readbuf[0]+sizeof(req_mbap)//pdu
 		       ,sizeof(write_req_pdu));
 #if SHOW_RECI_MSG
@@ -176,7 +189,7 @@ int Cmbap::ReciProc(void)
 		if(verify_req==false) {
 			//验证错误
 			this->make_msg_excep(req_mbap,rsp_mbap,excep_rsp_pdu,
-			                     write_req_pdu.func_code,errcode);
+					     write_req_pdu.func_code,errcode);
 			//发送
 			this->send_response_excep(rsp_mbap,excep_rsp_pdu,m_transBuf);
 			return 0;
@@ -191,9 +204,9 @@ int Cmbap::ReciProc(void)
 #endif
 		//写寄存器操作 (DEMO)
 		start_addr=(write_req_pdu.start_addr_hi<<8)
-		           +write_req_pdu.start_addr_lo;
+			   +write_req_pdu.start_addr_lo;
 		reg_quantity=(write_req_pdu.reg_quantity_hi<<8)
-		             +write_req_pdu.reg_quantity_lo;
+			     +write_req_pdu.reg_quantity_lo;
 		for(i=0; i<reg_quantity; i++) {
 			reg_table[start_addr+i]=u16((ppdu_dat[i*2+0]<<8)+ppdu_dat[i*2+1]);
 			printf("regtable=%X ;",reg_table[start_addr+i]);
@@ -201,7 +214,7 @@ int Cmbap::ReciProc(void)
 		map_reg2dat(reg_table,m_meterData,write_req_pdu);
 		//构造报文
 		if(make_msg(this->req_mbap,this->write_req_pdu
-		            ,this->rsp_mbap,this->write_rsp_pdu) != 0) {
+			    ,this->rsp_mbap,this->write_rsp_pdu) != 0) {
 			printf(MB_PERFIX_ERR"make msg\n");
 			return 0;
 		}
@@ -220,9 +233,9 @@ int Cmbap::ReciProc(void)
 	输出: transBuf(struct)	发送的报文.
 */
 int Cmbap::send_response(const struct mbap_head mbap
-                         ,const struct mb_read_rsp_pdu pdu
-                         ,const rsp_dat pdu_dat[256]
-                         ,TransReceiveBuf &transBuf)const
+			 ,const struct mb_read_rsp_pdu pdu
+			 ,const rsp_dat pdu_dat[256]
+			 ,TransReceiveBuf &transBuf)const
 {
 	//响应返回 send msg (to m_transBuf.m_transceiveBuf 数组)
 	memcpy(&transBuf.m_transceiveBuf[0]	//mbap
@@ -235,8 +248,8 @@ int Cmbap::send_response(const struct mbap_head mbap
 	       ,pdu_dat,pdu.byte_count);
 	//trans count
 	transBuf.m_transCount=sizeof(mbap) //mbap
-	                      +sizeof(pdu) //pdu
-	                      +(pdu.byte_count); //pdu-dat
+			      +sizeof(pdu) //pdu
+			      +(pdu.byte_count); //pdu-dat
 #if SHOW_SEND_MSG
 	printf(MB_PERFIX">>> Send  to  master:");
 	this->print_mbap(mbap);
@@ -260,15 +273,15 @@ int Cmbap::send_response(const struct mbap_head mbap
 	输出: transBuf(struct)	发送的报文.
 */
 int Cmbap::send_response(const struct mbap_head mbap
-                         ,const struct mb_write_rsp_pdu pdu
-                         ,struct TransReceiveBuf &transBuf)const
+			 ,const struct mb_write_rsp_pdu pdu
+			 ,struct TransReceiveBuf &transBuf)const
 {
 	memcpy(&transBuf.m_transceiveBuf[0]	//mbap
 	       ,&mbap,sizeof(mbap));
 	memcpy(&transBuf.m_transceiveBuf[0]+sizeof(mbap)//pdu
 	       ,&pdu,sizeof(pdu));
 	transBuf.m_transCount=sizeof(mbap)//count
-	                      +sizeof(pdu);
+			      +sizeof(pdu);
 #if SHOW_SEND_MSG
 	printf(MB_PERFIX">>> Send  to  master:");
 	this->print_mbap(mbap);
@@ -287,8 +300,8 @@ int Cmbap::send_response(const struct mbap_head mbap
 }
 //发送异常返回报文
 int Cmbap::send_response_excep(const struct mbap_head mbap,
-                               const struct mb_excep_rsp_pdu pdu,
-                               struct TransReceiveBuf &transBuf )const
+			       const struct mb_excep_rsp_pdu pdu,
+			       struct TransReceiveBuf &transBuf )const
 {
 	memcpy(&transBuf.m_transceiveBuf[0]//mbap
 	       ,&mbap,sizeof(struct mbap_head));//
@@ -312,10 +325,10 @@ int Cmbap::send_response_excep(const struct mbap_head mbap,
 	return:	0-成功 other-失败
   */
 int Cmbap::make_msg( const struct mbap_head request_mbap
-                     ,const struct mb_read_req_pdu request_pdu
-                     ,struct mbap_head &respond_mbap
-                     ,struct mb_read_rsp_pdu &respond_pdu
-                     ,u8 pdu_dat[256])const
+		     ,const struct mb_read_req_pdu request_pdu
+		     ,struct mbap_head &respond_mbap
+		     ,struct mb_read_rsp_pdu &respond_pdu
+		     ,u8 pdu_dat[256])const
 {
 	int i; //构造前的准备工作
 	int start_addr=request_pdu.start_addr_hi*256+request_pdu.start_addr_lo;
@@ -329,8 +342,8 @@ int Cmbap::make_msg( const struct mbap_head request_mbap
 	respond_mbap.protocolhead_lo=request_mbap.protocolhead_lo;//协议低
 	respond_mbap.len_hi=request_mbap.len_hi;//长度高(应该为0)
 	respond_mbap.len_lo=u8(sizeof(respond_mbap.unitindet) //长度低= 1byt的从站地址
-	                       +sizeof(respond_pdu) // + 2byte的 funcode+datlen
-	                       +respond_pdu.byte_count); // + dat len(byte)
+			       +sizeof(respond_pdu) // + 2byte的 funcode+datlen
+			       +respond_pdu.byte_count); // + dat len(byte)
 	respond_mbap.unitindet=request_mbap.unitindet;
 	//pdu
 	respond_pdu.func_code=request_pdu.func_code;
@@ -355,9 +368,9 @@ int Cmbap::make_msg( const struct mbap_head request_mbap
 	return:	0-成功 other-失败
   */
 int Cmbap::make_msg( const struct mbap_head request_mbap
-                     ,const struct mb_write_req_pdu request_pdu
-                     ,struct mbap_head &respond_mbap
-                     ,struct mb_write_rsp_pdu &respond_pdu)const
+		     ,const struct mb_write_req_pdu request_pdu
+		     ,struct mbap_head &respond_mbap
+		     ,struct mb_write_rsp_pdu &respond_pdu)const
 {
 	//mbap
 	respond_mbap.TransID_hi=request_mbap.TransID_hi;//序列高
@@ -366,7 +379,7 @@ int Cmbap::make_msg( const struct mbap_head request_mbap
 	respond_mbap.protocolhead_lo=request_mbap.protocolhead_lo;//协议低
 	respond_mbap.len_hi=request_mbap.len_hi;//长度高(应该为0)
 	respond_mbap.len_lo=u8(sizeof(respond_mbap.unitindet) //长度低= 1byt的从站地址
-	                       +sizeof(respond_pdu)); // + pdu
+			       +sizeof(respond_pdu)); // + pdu
 	respond_mbap.unitindet=request_mbap.unitindet;
 	//pdu
 	respond_pdu.func_code=request_pdu.func_code;
@@ -381,13 +394,13 @@ int Cmbap::make_msg( const struct mbap_head request_mbap
   out:&respond_mbap 应答头,&excep_pdu 异常数据单元
   */
 int Cmbap::make_msg_excep(const struct mbap_head request_mbap,
-                          struct mbap_head &respond_mbap,
-                          struct mb_excep_rsp_pdu &excep_pdu,
-                          u8 func_code, u8 exception_code) const
+			  struct mbap_head &respond_mbap,
+			  struct mb_excep_rsp_pdu &excep_pdu,
+			  u8 func_code, u8 exception_code) const
 {
 	memcpy(&respond_mbap,&request_mbap,sizeof(request_mbap));
 	respond_mbap.len_lo=sizeof(respond_mbap.unitindet)
-	                    +sizeof(excep_pdu);
+			    +sizeof(excep_pdu);
 	excep_pdu.exception_func_code=u8(func_code+0x80);
 	excep_pdu.exception_code=exception_code;
 	return 0;
@@ -430,6 +443,7 @@ bool Cmbap::verify_mbap(const struct mbap_head request_mbap) const
 	//放到外面(ReciProc函数，verify_mbap调用之前)检测.
 	return true;
 }
+
 /*	输入验证
 	验证功能码
 	判断功能码是否非法,未实现的功能也是不合法
@@ -464,7 +478,7 @@ bool Cmbap::verify_funcode( u8  funcode) const
 	返回值	: true:验证通过	fasle:不合法
 */
 bool Cmbap:: verify_req_pdu(const struct mb_read_req_pdu request_pdu,
-                            u8 &errcode) const
+			    u8 &errcode) const
 {
 	int reg_quantity;
 	int start_addr;
@@ -483,12 +497,15 @@ bool Cmbap:: verify_req_pdu(const struct mb_read_req_pdu request_pdu,
 	}
 	return true;
 }
+/*验证request_pdu
+*/
 bool Cmbap:: verify_req_pdu(const struct mb_write_req_pdu request_pdu,
-                            u8 &errcode) const
+			    u8 &errcode) const
 {
 	int reg_quantity;
 	int start_addr;
 	int end_addr;
+	errcode=0;
 	if(verify_reg_quantity(request_pdu,reg_quantity)==false) {
 		printf("\n"MB_PERFIX_ERR ERR_ILLEGAL_DATA_VALUE_MSG);
 		printf(" reg_quantity=0x%04X.\n",reg_quantity);
@@ -509,20 +526,22 @@ bool Cmbap:: verify_req_pdu(const struct mb_write_req_pdu request_pdu,
 	输出:	reg_quantity寄存器数量
 */
 bool Cmbap::verify_reg_quantity(const struct mb_read_req_pdu request_pdu
-                                ,int &reg_quantity)const
+				,int &reg_quantity)const
 {
 	reg_quantity=(request_pdu.reg_quantity_hi<<8)
-	             +request_pdu.reg_quantity_lo;
+		     +request_pdu.reg_quantity_lo;
 	if(reg_quantity<0x0001 || reg_quantity>0x007D) {
 		return false;
 	}
 	return true;
 }
+/* 验证寄存器数量
+*/
 bool Cmbap::verify_reg_quantity(const struct mb_write_req_pdu request_pdu
-                                ,int &reg_quantity)const
+				,int &reg_quantity)const
 {
 	reg_quantity=(request_pdu.reg_quantity_hi<<8)
-	             +request_pdu.reg_quantity_lo;
+		     +request_pdu.reg_quantity_lo;
 	if(reg_quantity<0x0001 || reg_quantity>0x007B) {
 		return false;
 	}
@@ -533,15 +552,16 @@ bool Cmbap::verify_reg_quantity(const struct mb_write_req_pdu request_pdu
 	return true;
 }
 /*	输入验证 :验证 寄存器 地址 是否符合相应的功能码
-	输入:	req_pdu
-	输出:	start_addr 开始地址 end_addr 结束地址
+	in:	request_pdu
+	out:	start_addr 开始地址
+		end_addr 结束地址
 */
 bool Cmbap::verify_reg_addr(const struct mb_read_req_pdu request_pdu,
-                            int &start_addr,int &end_addr )const
+			    int &start_addr,int &end_addr )const
 {
 	int reg_quantity=0;
 	reg_quantity=(request_pdu.reg_quantity_hi << 8)
-	             +request_pdu.reg_quantity_lo;
+		     +request_pdu.reg_quantity_lo;
 	start_addr=(request_pdu.start_addr_hi << 8) +request_pdu.start_addr_lo;
 	end_addr=start_addr+reg_quantity-1;
 	// 起始和结束地址[0x0000,0xFFFF]
@@ -552,11 +572,11 @@ bool Cmbap::verify_reg_addr(const struct mb_read_req_pdu request_pdu,
 	return true;
 }
 bool Cmbap::verify_reg_addr(const struct mb_write_req_pdu request_pdu,
-                            int &start_addr,int &end_addr )const
+			    int &start_addr,int &end_addr )const
 {
 	int reg_quantity=0;
 	reg_quantity=(request_pdu.reg_quantity_hi<<8)
-	             +request_pdu.reg_quantity_lo;
+		     +request_pdu.reg_quantity_lo;
 	start_addr=(request_pdu.start_addr_hi<<8)+request_pdu.start_addr_lo;
 	end_addr=start_addr+reg_quantity-1;
 	// 起始和结束地址[0x0000,0xFFFF]
@@ -617,7 +637,7 @@ inline void Cmbap::dat2mbreg(u16 reg[1],const short dat16) const
 }
 //将 2 个 8位 char 数据 合成成为 1个 modbus寄存器(16位)的形式
 inline void Cmbap::dat2mbreg(u16 reg[1]
-                             ,const char high_byte,const char low_byte) const
+			     ,const char high_byte,const char low_byte) const
 {
 	reg[0]=u16( (high_byte<<8) + low_byte) ;
 }
@@ -685,7 +705,10 @@ const
 	       ,respond_pdu.reg_quantity_lo);
 	fflush(stdout);
 }
-//打印响应pdu数据体
+/*打印响应pdu数据体
+  In pdu_dat
+  In bytecount
+*/
 inline void Cmbap::print_pdu_dat(  const u8  pdu_dat[], u8 bytecount)const
 {
 	int i;
@@ -707,14 +730,26 @@ inline void Cmbap::print_pdu_dat(  const u8  pdu_dat[], u8 bytecount)const
 	NOTE:	modbus寄存器起始地址分清0开始还是1开始.
 */
 int Cmbap::map_dat2reg(u16  reg[0xFFFF+1]
-                       ,stMeter_Run_data meter[]
-                       ,const struct mb_read_req_pdu request_pdu) const
+		       , stMeter_Run_data meter[]
+		       ,const struct mb_read_req_pdu request_pdu) const
 {
 	int i;
 	int j;
 	int base;
+	int bit;
+#define ERR_DAT_NUM (-1) //if dat is not sample , return a -1 to modbus regs
 	u8 sub=0;// base(表序号)+sub(项序号)=地址
 	//printf("%d\n",sysConfig->meter_num);
+	int t=0;//meter test id
+#if 0
+	printf("meter[%d].Flag_TOU==%X\n",t,meter[t].Flag_TOU);
+	printf("meter[%d].FLag_TA==%X\n",t,meter[t].FLag_TA);
+	printf("meter[%d].Flag_MN==%X\n",t,meter[t].Flag_MN);
+	printf("meter[%d].Flag_MNT==%X\n",t,meter[t].Flag_MNT);
+	printf("meter[%d].Flag_QR==%X\n",t,meter[t].Flag_QR);
+	printf("meter[%d].Flag_LastQR_Save==%X\n",t,meter[t].Flag_LastQR_Save);
+	printf("meter[%d].Flag_LastTOU_Collect==%X\n",t,meter[t].Flag_LastTOU_Collect);
+#endif
 	for (i=0; i<sysConfig->meter_num; i++) {
 //		for (i=0;i<MAXMETER;i++) {//(复制所有变量)
 		base=(i<<8);	//高字节表示表号,分辨各个不同的表,范围[0,MAXMETER]
@@ -724,10 +759,21 @@ int Cmbap::map_dat2reg(u16  reg[0xFFFF+1]
 		printf("m_iTOU start at line: %d sub=0x%X(%d)\n",__LINE__,sub,sub);
 #endif
 		for(j=0; j<TOUNUM; j++) {
-			dat2mbreg_lo16bit(&reg[base+sub],meter[i].m_iTOU[j]);
-			sub++;
-			dat2mbreg_hi16bit(&reg[base+sub],meter[i].m_iTOU[j]);
-			sub++;
+			printf("tatil:: meter[i].Flag_TOU=%X\n",meter[i].Flag_TOU);
+			//tou = 0x000F FFFF 2bit 1:ok 0: not sampel
+			bit= (meter[i].Flag_TOU&(0x1<<j))>>j;
+			printf("bit[%d]=%x\n",j,bit);
+			if( bit!=1 ){ // cheak if dat is legel . per bit mean one of zong/jian/fen/ping/gu
+				dat2mbreg_lo16bit(&reg[base+sub],(float)ERR_DAT_NUM);
+				sub++;
+				dat2mbreg_hi16bit(&reg[base+sub],(float)ERR_DAT_NUM);
+				sub++;
+			}else{
+				dat2mbreg_lo16bit(&reg[base+sub],meter[i].m_iTOU[j]);
+				sub++;
+				dat2mbreg_hi16bit(&reg[base+sub],meter[i].m_iTOU[j]);
+				sub++;
+			}
 			//printf("meter[%d].m_iTOU[%d]=%f sub=%d \n",i,j,meter[i].m_iTOU[j],sub);
 		}
 #if DEBUG_REG_MAP
@@ -735,16 +781,25 @@ int Cmbap::map_dat2reg(u16  reg[0xFFFF+1]
 		printf("m_iQR start at line: %d sub=0x%X(%d)\n",__LINE__,sub,sub);
 #endif
 		for(j=0; j<TOUNUM; j++) { //
-			dat2mbreg_lo16bit(&reg[base+sub],meter[i].m_iQR[j]);
-			sub++;
-			dat2mbreg_hi16bit(&reg[base+sub],meter[i].m_iQR[j]);
-			sub++;
+			bit= (meter[i].Flag_QR&(0x1<<j))>>j;
+			if( bit!=1 ){
+				dat2mbreg_lo16bit(&reg[base+sub],(float)ERR_DAT_NUM);
+				sub++;
+				dat2mbreg_hi16bit(&reg[base+sub],(float)ERR_DAT_NUM);
+				sub++;
+			}else{
+				dat2mbreg_lo16bit(&reg[base+sub],meter[i].m_iQR[j]);
+				sub++;
+				dat2mbreg_hi16bit(&reg[base+sub],meter[i].m_iQR[j]);
+				sub++;
+			}
 			//printf("meter[%d].m_iQR[%d]=%f sub=%d \n",i,j,meter[i].m_iQR[j],sub);
 		}
 #if DEBUG_REG_MAP
 		//最大需量 2*2*5=20
 		printf("m_iMaxN start at line: %d sub=0x%X(%d)\n",__LINE__,sub,sub);
 #endif
+		//TODO: adjust all dat legel. now,just ONLY adjust TI and phane less power!!!
 		for(j=0; j<TOUNUM; j++) { //
 			//meter[i].m_iMaxN[j]=123.4F;
 			dat2mbreg_lo16bit(&reg[base+sub],meter[i].m_iMaxN[j]);
@@ -878,8 +933,8 @@ int Cmbap::map_dat2reg(u16  reg[0xFFFF+1]
 	预留的备用(扩展)功能
 */
 int Cmbap::map_reg2dat(u16  reg_tbl[0xFFFF+1]
-                       ,stMeter_Run_data meter[]
-                       ,const struct mb_write_req_pdu request_pdu) const
+		       ,stMeter_Run_data meter[]
+		       ,const struct mb_write_req_pdu request_pdu) const
 {
 	int i;
 	int addr;

@@ -10,7 +10,7 @@ wflags  =  -Wall -Wfloat-equal -Wshadow -Wconversion    \
 		-Woverloaded-virtual
 # -Wpacked -Wpadded 用于最好的检测结构体内存对齐问题
 # -Wunreachable-code 死代码
-debugflag= -g 
+debugflag= -g
 all:$(NAME)
 $(NAME):$(SOURCE)
 	$(CXX) $(LDFALGS) $(CXXFLAGS) -shared $(MARCO) $(INCS) \
