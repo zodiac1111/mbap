@@ -86,7 +86,7 @@ void Cmbap::SendProc(void)
 int Cmbap::ReciProc(void)
 {
 	//printf(MB_PERFIX" into ReciProc\n");
-	//printf(".");fflush(stdout);
+	printf(".");fflush(stdout);
 	unsigned short  len=0;
 	u8 readbuf[260];//TCP MODBUS ADU = 253 bytes+MBAP (7 bytes) = 260 bytes
 	bool verify_req=false;
@@ -740,8 +740,8 @@ int Cmbap::map_dat2reg(u16  reg[0xFFFF+1]
 #define ERR_DAT_NUM (-1) //if dat is not sample , return a -1 to modbus regs
 	u8 sub=0;// base(表序号)+sub(项序号)=地址
 	//printf("%d\n",sysConfig->meter_num);
-	int t=0;//meter test id
 #if 0
+	int t=0;//meter test id
 	printf("meter[%d].Flag_TOU==%X\n",t,meter[t].Flag_TOU);
 	printf("meter[%d].FLag_TA==%X\n",t,meter[t].FLag_TA);
 	printf("meter[%d].Flag_MN==%X\n",t,meter[t].Flag_MN);
@@ -751,7 +751,7 @@ int Cmbap::map_dat2reg(u16  reg[0xFFFF+1]
 	printf("meter[%d].Flag_LastTOU_Collect==%X\n",t,meter[t].Flag_LastTOU_Collect);
 #endif
 	for (i=0; i<sysConfig->meter_num; i++) {
-//		for (i=0;i<MAXMETER;i++) {//(复制所有变量)
+//for (i=0;i<MAXMETER;i++) {//(复制所有变量)
 		base=(i<<8);	//高字节表示表号,分辨各个不同的表,范围[0,MAXMETER]
 		sub=0;				//子域,某个表的特定参数
 #if DEBUG_REG_MAP

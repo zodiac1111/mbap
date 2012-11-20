@@ -29,7 +29,7 @@
 #define SHOW_SEND_EXCEP_MSG 1 //在终端显示 发送的 异常 消息(报文)
 //#define READ_DATE_PAND_DBG //显示填充到寄存器的值
 //#define DBG_send_response
-#define DEBUG_REG_MAP 0
+#define DEBUG_REG_MAP 1
 
 extern "C" CProtocol *CreateCProto_Cmbap(void);//mbap规约
 
