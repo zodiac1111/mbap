@@ -58,6 +58,7 @@ int Cmbap::Init(struct stPortConfig *tmp_portcfg)
 	      <<"m_meterData[0].Flag_Meter="<< m_meterData[0].Flag_Meter<<"\n"
 
 		<<std::endl;
+	BUILD_INFO
 	return 0;
 }
 
@@ -86,7 +87,7 @@ void Cmbap::SendProc(void)
 int Cmbap::ReciProc(void)
 {
 	//printf(MB_PERFIX" into ReciProc\n");
-	printf(".");fflush(stdout);
+	//printf(".");fflush(stdout);
 	unsigned short  len=0;
 	u8 readbuf[260];//TCP MODBUS ADU = 253 bytes+MBAP (7 bytes) = 260 bytes
 	bool verify_req=false;
@@ -759,10 +760,14 @@ int Cmbap::map_dat2reg(u16  reg[0xFFFF+1]
 		printf("m_iTOU start at line: %d sub=0x%X(%d)\n",__LINE__,sub,sub);
 #endif
 		for(j=0; j<TOUNUM; j++) {
+#if DEBUG_REG_MAP
 			printf("tatil:: meter[i].Flag_TOU=%X\n",meter[i].Flag_TOU);
+#endif
 			//tou = 0x000F FFFF 2bit 1:ok 0: not sampel
 			bit= (meter[i].Flag_TOU&(0x1<<j))>>j;
+#if DEBUG_REG_MAP
 			printf("bit[%d]=%x\n",j,bit);
+#endif
 			if( bit!=1 ){ // cheak if dat is legel . per bit mean one of zong/jian/fen/ping/gu
 				dat2mbreg_lo16bit(&reg[base+sub],(float)ERR_DAT_NUM);
 				sub++;

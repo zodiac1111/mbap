@@ -29,8 +29,12 @@
 #define SHOW_SEND_EXCEP_MSG 1 //在终端显示 发送的 异常 消息(报文)
 //#define READ_DATE_PAND_DBG //显示填充到寄存器的值
 //#define DBG_send_response
-#define DEBUG_REG_MAP 1
-
+#define DEBUG_REG_MAP 0
+/// 打印编译构建的日期和时间，类似：Dec  3 2012 09:59:57
+#define BUILD_INFO {					\
+	printf(MB_PERFIX"Build:%s %s\n",	\
+	__DATE__, __TIME__);		\
+	}
 extern "C" CProtocol *CreateCProto_Cmbap(void);//mbap规约
 
 class Cmbap :public CProtocol

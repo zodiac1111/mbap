@@ -23,7 +23,7 @@ int main(int argc,char *argv[])
 	if(argc==2){
 		mtr_no=atol(argv[1]);
 	}
-	sprintf(argv[0],"asdasd");
+	//sprintf(argv[0],"asdasd");
 	char filename[255];
 	sprintf(filename,"./base-%dmeters.csv",mtr_no);
 	fd=fopen(filename, "w");
@@ -36,7 +36,7 @@ int main(int argc,char *argv[])
 		mtr(i);
 	}
 	fclose(fd);
-	while(1);
+	//while(1);
 	//cout << "************ EOF ****************" << endl;
 	return 0;
 }
@@ -48,7 +48,7 @@ void mtr(int mtrno)
 #endif
 	//max_need(mtrno);
 #if 0
-	instant(mtrno);//瞬时值
+	//instant(mtrno);//瞬时值
 #endif
 	//bocken(mtrno);
 	return;
@@ -71,20 +71,20 @@ void base(int mtrno)
 //				chan=1;
 //			}
 			for (k=0; k<chan; k++) {
-				if(CON)fprintf(fd,"Meter %d.1Basic.",mtrno);
+				if(CON)fprintf(fd,"表 %d.项目.",mtrno);
 				if(i==0) {
-					if(CON)fprintf(fd,"Forward");
+					if(CON)fprintf(fd,"正向");
 				} else {
-					if(CON)fprintf(fd,"Reverse");
+					if(CON)fprintf(fd,"反向");
 				}
 				if(j==0) {
-					if(CON)fprintf(fd," Active power");
+					if(CON)fprintf(fd,"有功");
 				} else {
-					if(CON)fprintf(fd," Reactive power");
+					if(CON)fprintf(fd,"无功");
 				}
 				switch(k) {
 				case 0:
-					if(CON)fprintf(fd,"-1 Total");
+					if(CON)fprintf(fd," 总");
 					break;
 				case 1:
 					if(CON)fprintf(fd,"-2 Tip");
