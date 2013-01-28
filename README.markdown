@@ -37,6 +37,7 @@ modbus/TCP 终端(从站)地址应设置为255,因为本协议不依靠终端地
 	[libmbap]>>> Send  to  master:{32 C5|00 00|00 43|FF}(03|40)[00 00 BF 80 00 00 BF 80 00 00 BF 80 00 00 BF 80 00 00 BF 80 00 00 BF 80 00 00 BF 80 00 00 BF 80 00 00 BF 80 00 00 BF 80 00 00 BF 80 00 00 BF 80 00 00 BF 80 00 00 BF 80 00 00 BF 80 00 00 BF 80]
 
 	[libmbap]<<< Reci form master:{32 C6|00 00|00 06|FF}(03|0F 20|00 08)
+
 	[libmbap]>>> Send  to  master:{32 C6|00 00|00 13|FF}(03|10)[00 00 BF 80 00 00 BF 80 00 00 BF 80 00 00 BF 80]
 
 	[libmbap]<<< Reci form master:{32 C7|00 00|00 06|FF}(03|10 00|00 20)
