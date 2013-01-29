@@ -136,7 +136,7 @@ int Cmbap::ReciProc(void)
 	print_mbap(req_mbap);
 	fflush(stdout);     //stdout为行缓存设备,强制刷新
 #endif
-	//验证 功能码,
+	//验证 功能码,没实现的功能码给予错误相应.
 	u8 funcode = readbuf[sizeof(req_mbap)];
 	if (verify_funcode(funcode)==false) {
 		printf("(%02X|NaN)\n", funcode);
@@ -149,6 +149,7 @@ int Cmbap::ReciProc(void)
 		                funcode,
 		                ERR_ILLEGAL_FUN);
 		send_response_excep(rsp_mbap, excep_rsp_pdu, m_transBuf);
+		return 0;
 	}
 	//根据功能码 判断 复制到不同的 请求pdu.
 	switch (funcode) {
@@ -247,7 +248,7 @@ int Cmbap::ReciProc(void)
 		this->send_response(rsp_mbap, write_rsp_pdu, m_transBuf);
 		break;
 	default:
-		return 0;
+		//return 0;
 		break;
 	}
 	//printf(PERFIX"out of ReciProc\n");
