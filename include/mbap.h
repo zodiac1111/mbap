@@ -12,6 +12,7 @@
 */
 #ifndef __MBAP_H__
 #define __MBAP_H__
+#include <stdio.h>
 #include "protocol.h"
 #include "mbap_struct.h"
 //显示mbap库消息的前缀.方便在显示中查看该库相关的信息.

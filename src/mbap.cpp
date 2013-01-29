@@ -5,8 +5,6 @@
 	所有文档在本文件底部列出.
 */
 #include <string.h>
-#include <stdio.h>
-#include <stdio.h>
 #include <time.h>
 #include <iostream>
 #include <malloc.h>
@@ -16,9 +14,9 @@
 #include "log.h"
 #include "mbap.h"
 #include "metershm.h"
+#include <stdio.h>
 extern "C" CProtocol *CreateCProto_Cmbap(void)
 {
-	//static_assert(sizeof(int) == 4, "Integer sizes expected to be 4");
 	return new Cmbap;
 }
 
