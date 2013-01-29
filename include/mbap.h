@@ -41,8 +41,8 @@
 #define DEBUG_REG_MAP 0
 /// 打印编译构建的日期和时间，类似：Dec  3 2012 09:59:57
 #define BUILD_INFO {					\
-	printf(MB_PERFIX"Build:%s %s\n",	\
-	__DATE__, __TIME__);		\
+		printf(MB_PERFIX"Build:%s %s\n",	\
+			__DATE__, __TIME__);		\
 	}
 extern "C" CProtocol *CreateCProto_Cmbap(void);//mbap规约
 
