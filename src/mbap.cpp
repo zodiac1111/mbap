@@ -64,12 +64,13 @@ int Cmbap::Init(struct stPortConfig *tmp_portcfg)
 	return 0;
 }
 
-void Cmbap::m_BroadcastTime(void)     // 广播(一般协议从站地址0x255为广播)
+/// 广播(一般协议从站地址0x255为广播)
+void Cmbap::m_BroadcastTime(void)
 {
 	return;
 }
 
-/*	TODO: 从站主动发送(待定):
+/** todo 从站主动发送(待定):
  当前没有被利用,可能的话可以用来从站主动上传某些报警信息,
  modbus串口传统形式是不支持从站主动上传的,这仅在modbus/tcp中定义.
  */
@@ -78,7 +79,7 @@ void Cmbap::SendProc(void)
 	return;
 }
 
-/*	从站接收主站的接收函数:
+/**	从站接收主站的接收函数:
  该模式是传统modbus/串口和modbus/tcp都有的.
  接收->分析->执行->返回(发送给主站) 均由本函数实现
  分析/验证:	由 verify_* 函数完成
@@ -89,9 +90,9 @@ void Cmbap::SendProc(void)
 int Cmbap::ReciProc(void)
 {
 	//printf(MB_PERFIX" into ReciProc\n");
-	//printf(".");fflush(stdout);
 	unsigned short len = 0;
-	u8 readbuf[260];     //TCP MODBUS ADU = 253 bytes+MBAP (7 bytes) = 260 bytes
+	///TCP MODBUS ADU = 253 bytes+MBAP (7 bytes) = 260 bytes
+	u8 readbuf[253+7];
 	bool verify_req = false;
 	u8 errcode = 0;
 	int i;

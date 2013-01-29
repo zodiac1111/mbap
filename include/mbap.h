@@ -25,6 +25,7 @@
 //libmbap 定义的错误消息
 //extern stMeter_Run_data m_meterData[MAXMETER];
 // 调试/打印 选项:
+#define SHOW_INIT_INFO 1 //打印初始化信息
 #define SHOW_RECI_MSG 1 //在终端显示接收到 消息(报文)
 #define SHOW_SEND_MSG 1 //在终端显示 发送的 消息(报文)
 #define SHOW_SEND_EXCEP_MSG 1 //在终端显示 发送的 异常 消息(报文)
