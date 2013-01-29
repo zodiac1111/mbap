@@ -1,8 +1,8 @@
-/*	filename: mbap.h -> libmbap.so
-	modbusµÄ¼Ä´æÆ÷Îª16Î»,ÇÒ°´ÏÈ¸ß×Ö½Ú ºóµÍ×Ö½Ú´«Êä
-	¶ÔÓÚ¶àÓÚ16Î»µÄÊı¾İÀàĞÍÈç int float,ºó2×Ö½ÚÔÚÇ°.
-	×¢ÒâÊı¾İ¸ñÊ½,¼Ä´æÆ÷¸ñÊ½,´«ÊäË³Ğò,
-ËõÂÔÓï:
+/**	@file mbap.h -> libmbap.so
+	modbusçš„å¯„å­˜å™¨ä¸º16ä½,ä¸”æŒ‰å…ˆé«˜å­—èŠ‚ åä½å­—èŠ‚ä¼ è¾“
+	å¯¹äºå¤šäº16ä½çš„æ•°æ®ç±»å‹å¦‚ int float,å2å­—èŠ‚åœ¨å‰.
+	æ³¨æ„æ•°æ®æ ¼å¼,å¯„å­˜å™¨æ ¼å¼,ä¼ è¾“é¡ºåº,
+ç¼©ç•¥è¯­:
 	ADU Application Data Unit
 	IP Internet Protocol
 	MB MODBUS
@@ -14,28 +14,28 @@
 #define __MBAP_H__
 #include "protocol.h"
 #include "mbap_struct.h"
-//ÏÔÊ¾mbap¿âÏûÏ¢µÄÇ°×º.·½±ãÔÚÏÔÊ¾ÖĞ²é¿´¸Ã¿âÏà¹ØµÄĞÅÏ¢.
-//ÓÃÓÚÒ»°ãĞÅÏ¢ Èç½ÓÊÕÊı¾İ
+//æ˜¾ç¤ºmbapåº“æ¶ˆæ¯çš„å‰ç¼€.æ–¹ä¾¿åœ¨æ˜¾ç¤ºä¸­æŸ¥çœ‹è¯¥åº“ç›¸å…³çš„ä¿¡æ¯.
+//ç”¨äºä¸€èˆ¬ä¿¡æ¯ å¦‚æ¥æ”¶æ•°æ®
 #define MB_PERFIX "[libmbap]"
-//ÓÃÓÚÌáÊ¾ µ÷ÊÔ»ò½¨ÒéĞÅÏ¢
+//ç”¨äºæç¤º è°ƒè¯•æˆ–å»ºè®®ä¿¡æ¯
 #define MB_PERFIX_WARN "[libmbap]Warning:"
-//ÓÃÓÚÌáÊ¾ ´íÎóĞÅÏ¢
+//ç”¨äºæç¤º é”™è¯¯ä¿¡æ¯
 #define MB_PERFIX_ERR "[libmbap]ERR:"
-//libmbap ¶¨ÒåµÄ´íÎóÏûÏ¢
+//libmbap å®šä¹‰çš„é”™è¯¯æ¶ˆæ¯
 //extern stMeter_Run_data m_meterData[MAXMETER];
-// µ÷ÊÔ/´òÓ¡ Ñ¡Ïî:
-#define SHOW_RECI_MSG 1 //ÔÚÖÕ¶ËÏÔÊ¾½ÓÊÕµ½ ÏûÏ¢(±¨ÎÄ)
-#define SHOW_SEND_MSG 1 //ÔÚÖÕ¶ËÏÔÊ¾ ·¢ËÍµÄ ÏûÏ¢(±¨ÎÄ)
-#define SHOW_SEND_EXCEP_MSG 1 //ÔÚÖÕ¶ËÏÔÊ¾ ·¢ËÍµÄ Òì³£ ÏûÏ¢(±¨ÎÄ)
-//#define READ_DATE_PAND_DBG //ÏÔÊ¾Ìî³äµ½¼Ä´æÆ÷µÄÖµ
+// è°ƒè¯•/æ‰“å° é€‰é¡¹:
+#define SHOW_RECI_MSG 1 //åœ¨ç»ˆç«¯æ˜¾ç¤ºæ¥æ”¶åˆ° æ¶ˆæ¯(æŠ¥æ–‡)
+#define SHOW_SEND_MSG 1 //åœ¨ç»ˆç«¯æ˜¾ç¤º å‘é€çš„ æ¶ˆæ¯(æŠ¥æ–‡)
+#define SHOW_SEND_EXCEP_MSG 1 //åœ¨ç»ˆç«¯æ˜¾ç¤º å‘é€çš„ å¼‚å¸¸ æ¶ˆæ¯(æŠ¥æ–‡)
+//#define READ_DATE_PAND_DBG //æ˜¾ç¤ºå¡«å……åˆ°å¯„å­˜å™¨çš„å€¼
 //#define DBG_send_response
 #define DEBUG_REG_MAP 0
-/// ´òÓ¡±àÒë¹¹½¨µÄÈÕÆÚºÍÊ±¼ä£¬ÀàËÆ£ºDec  3 2012 09:59:57
+/// æ‰“å°ç¼–è¯‘æ„å»ºçš„æ—¥æœŸå’Œæ—¶é—´ï¼Œç±»ä¼¼ï¼šDec  3 2012 09:59:57
 #define BUILD_INFO {					\
 	printf(MB_PERFIX"Build:%s %s\n",	\
 	__DATE__, __TIME__);		\
 	}
-extern "C" CProtocol *CreateCProto_Cmbap(void);//mbap¹æÔ¼
+extern "C" CProtocol *CreateCProto_Cmbap(void);//mbapè§„çº¦
 
 class Cmbap :public CProtocol
 {
@@ -46,24 +46,24 @@ public:
 	void SendProc(void);
 	int ReciProc(void);
 	void m_BroadcastTime(void);
-	/************************** ³ÉÔ±±äÁ¿ ****************************/
+	/************************** æˆå‘˜å˜é‡ ****************************/
 private:
-	u8 unit_id;//modbus´ÓÕ¾(ÖÕ¶Ë)ID
-	struct stSyspara *sysConfig;//ÏµÍ³²ÎÊı
-	//ÇëÇó
-	struct mbap_head req_mbap;//ÇëÇóÍ·
-	struct mb_read_req_pdu read_req_pdu;//¶ÁÇëÇóÌå
-	struct mb_write_req_pdu write_req_pdu;//Ğ´ÇëÇóÌå
-	//ÏìÓ¦
-	struct mbap_head rsp_mbap;//»ØÓ¦Í·
-	struct mb_read_rsp_pdu read_rsp_pdu;//¶ÁÏìÓ¦Ìå-Í·
-	struct mb_write_rsp_pdu write_rsp_pdu;//Ğ´ÏìÓ¦Ìå-Í·
-	rsp_dat ppdu_dat[256];//Ö¸Ïò(ÏìÓ¦Ìå-Êı¾İ²¿·Ö)µÄÖ¸Õë
-	struct mb_excep_rsp_pdu excep_rsp_pdu;//Òì³£ÏìÓ¦Ìå-Í·
-	//ËùÓĞ¼Ä´æÆ÷±í 16Î»Ã¿¸ö ¹²0xFFFF+1¸ö
+	u8 unit_id;//modbusä»ç«™(ç»ˆç«¯)ID
+	struct stSyspara *sysConfig;//ç³»ç»Ÿå‚æ•°
+	//è¯·æ±‚
+	struct mbap_head req_mbap;//è¯·æ±‚å¤´
+	struct mb_read_req_pdu read_req_pdu;//è¯»è¯·æ±‚ä½“
+	struct mb_write_req_pdu write_req_pdu;//å†™è¯·æ±‚ä½“
+	//å“åº”
+	struct mbap_head rsp_mbap;//å›åº”å¤´
+	struct mb_read_rsp_pdu read_rsp_pdu;//è¯»å“åº”ä½“-å¤´
+	struct mb_write_rsp_pdu write_rsp_pdu;//å†™å“åº”ä½“-å¤´
+	rsp_dat ppdu_dat[256];//æŒ‡å‘(å“åº”ä½“-æ•°æ®éƒ¨åˆ†)çš„æŒ‡é’ˆ
+	struct mb_excep_rsp_pdu excep_rsp_pdu;//å¼‚å¸¸å“åº”ä½“-å¤´
+	//æ‰€æœ‰å¯„å­˜å™¨è¡¨ 16ä½æ¯ä¸ª å…±0xFFFF+1ä¸ª
 	u16 reg_table[0xFFFF+1];
-	/************************** ³ÉÔ±º¯Êı ****************************/
-private://ÊäÈëÑéÖ¤
+	/************************** æˆå‘˜å‡½æ•° ****************************/
+private://è¾“å…¥éªŒè¯
 	bool verify_msg(unsigned short len) const;
 	bool verify_mbap(const mbap_head request_mbap) const;
 	bool verify_req_pdu(const struct  mb_read_req_pdu request_pdu,
@@ -79,23 +79,23 @@ private://ÊäÈëÑéÖ¤
 				 ,int &reg_quantity)const;
 	bool verify_reg_quantity(const struct mb_write_req_pdu request_pdu
 				 ,int &reg_quantity)const;
-	//¹¹½¨·µ»Ø±¨ÎÄ 0x06
+	//æ„å»ºè¿”å›æŠ¥æ–‡ 0x06
 	int make_msg( const struct mbap_head request_mbap
 		      ,const struct mb_read_req_pdu read_req_pdu
 		      ,struct mbap_head &rsp_mbap
 		      ,struct mb_read_rsp_pdu &respond_pdu
 		      ,u8 pdu_dat[])const;
-	//¹¹½¨·µ»Ø±¨ÎÄ 0x10
+	//æ„å»ºè¿”å›æŠ¥æ–‡ 0x10
 	int make_msg( const struct mbap_head request_mbap
 		      ,const struct mb_write_req_pdu read_req_pdu
 		      ,struct mbap_head &rsp_mbap
 		      ,struct mb_write_rsp_pdu  &respond_pdu)const;
-	//¹¹ÔìÒì³£·µ»Ø±¨ÎÄ
+	//æ„é€ å¼‚å¸¸è¿”å›æŠ¥æ–‡
 	int make_msg_excep(const mbap_head request_mbap,
 			   mbap_head &respond_mbap,
 			   mb_excep_rsp_pdu &excep_pdu
 			   , u8 func_code, u8 exception_code)const;
-	//·¢ËÍÕı³£»Ø¸´,0x06 0x10
+	//å‘é€æ­£å¸¸å›å¤,0x06 0x10
 	int send_response(const mbap_head mbap
 			  ,const mb_read_rsp_pdu pdu
 			  ,const rsp_dat pdu_dat[],
@@ -103,20 +103,20 @@ private://ÊäÈëÑéÖ¤
 	int send_response(const struct mbap_head mbap
 			  ,const mb_write_rsp_pdu pdu
 			  ,TransReceiveBuf &transBuf)const;
-	//·¢ËÍÒì³£»Ø¸´
+	//å‘é€å¼‚å¸¸å›å¤
 	int send_response_excep(const struct mbap_head mbap,
 				const struct mb_excep_rsp_pdu pdu,
 				struct TransReceiveBuf &transBuf )const ;
-private://¸÷ÖÖ´òÓ¡:	mbapÍ·, ÇëÇópdu
+private://å„ç§æ‰“å°:	mbapå¤´, è¯·æ±‚pdu
 	void print_mbap( const mbap_head mbap)const;// 0x06 adn 0x10
-	void print_req_pdu(const mb_read_req_pdu request_pdu)const;//readÇëÇó
+	void print_req_pdu(const mb_read_req_pdu request_pdu)const;//readè¯·æ±‚
 	void print_req_pdu(const mb_write_req_pdu request_pdu)const;//write x010
-	//		·µ»ØÏìÓ¦1 / ÏìÓ¦2
+	//		è¿”å›å“åº”1 / å“åº”2
 	void print_rsp_pdu(const mb_read_rsp_pdu respond_pdu)const;//0x06
 	void print_rsp_pdu(const mb_write_rsp_pdu respond_pdu)const;//0x10
-	void print_rsp_pdu(const mb_excep_rsp_pdu excep_respond_pdu)const;//Òì³£
-	void print_pdu_dat(const u8 pdu_dat[],u8 bytecount)const;//0x06/0x10Êı¾İÌå
-private://ÊµÓÃº¯Êı ½«¸÷ÖÖÀàĞÍ×ª»»³ÉÎª 16Î»modbus¼Ä´æÆ÷ÀàĞÍ
+	void print_rsp_pdu(const mb_excep_rsp_pdu excep_respond_pdu)const;//å¼‚å¸¸
+	void print_pdu_dat(const u8 pdu_dat[],u8 bytecount)const;//0x06/0x10æ•°æ®ä½“
+private://å®ç”¨å‡½æ•° å°†å„ç§ç±»å‹è½¬æ¢æˆä¸º 16ä½modbuså¯„å­˜å™¨ç±»å‹
 	void dat2mbreg_hi16bit(u16 reg[1],unsigned int &dat32, int dir) const;
 	void dat2mbreg_lo16bit(u16 reg[1],unsigned int &dat32, int dir) const;
 	void dat2mbreg_hi16bit(u16 reg[1],const signed int  dat32) const;
@@ -133,13 +133,13 @@ private://reg map
 			,const struct mb_write_req_pdu request_pdu) const;
 };
 
-/* ²Î¿¼ÎÄµµ:
+/* å‚è€ƒæ–‡æ¡£:
 	1. refer: modbus/TCP http://www.simplymodbus.ca/TCP.htm
 	2. http://www.electroind.com/pdf/Modbus_messaging_on_TCPIP_implementation_guide_V11.pdf
-	3. http://www.modbus.org/docs/Modbus_Application_Protocol_V1_1b.pdf (¹ÙÍø)
+	3. http://www.modbus.org/docs/Modbus_Application_Protocol_V1_1b.pdf (å®˜ç½‘)
 	4. http://www.modbus.org/docs/Modbus_Messaging_Implementation_Guide_V1_0b.pdf
-	5. http://www.modbus.org/specs.php (ËµÃ÷Êé)
-	6. ´ÓModbusµ½Í¸Ã÷¾ÍĞ÷ »ª? ±àÖø µÚ8ÕÂ
+	5. http://www.modbus.org/specs.php (è¯´æ˜ä¹¦)
+	6. ä»Modbusåˆ°é€æ˜å°±ç»ª å? ç¼–è‘— ç¬¬8ç« 
 */
 
 #endif //__MBAP_H__

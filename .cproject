@@ -31,6 +31,7 @@
 							<tool id="cdt.managedbuild.tool.gnu.cross.cpp.compiler.621409050" name="Cross G++ Compiler" superClass="cdt.managedbuild.tool.gnu.cross.cpp.compiler">
 								<option id="gnu.cpp.compiler.option.include.paths.836341075" name="包含路径（-I）" superClass="gnu.cpp.compiler.option.include.paths" valueType="includePath">
 									<listOptionValue builtIn="false" value="/home/lee/test/hl3104/include"/>
+									<listOptionValue builtIn="false" value="/usr/include"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.1613060798" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
 							</tool>

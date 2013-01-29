@@ -1,6 +1,6 @@
-#¶¨Òåhl3104¸ùÄ¿Â¼(rootdir) 
-#1.ĞèÒªÆäÖĞµÄÍ·ÎÄ¼ş²ÎÓë±àÒë
-#2.ĞèÒªÆäÖĞµÄ¿âÎÄ¼ş.so²ÎÓëÁ¬½Ó.
+#å®šä¹‰hl3104æ ¹ç›®å½•(rootdir) 
+#1.éœ€è¦å…¶ä¸­çš„å¤´æ–‡ä»¶å‚ä¸ç¼–è¯‘
+#2.éœ€è¦å…¶ä¸­çš„åº“æ–‡ä»¶.soå‚ä¸è¿æ¥.
 rootdir= /home/lee/test/hl3104
 indir	= $(rootdir)/include
 INCS	= -I../include -I$(indir)
@@ -9,15 +9,15 @@ LIBS	= -L$(LIB) -lsys_utl
 CXX	= arm-linux-g++
 NAME	= mbap
 SOURCE	=  ../src/mbap.cpp
-#¾¯¸æÑ¡Ïî
+#è­¦å‘Šé€‰é¡¹
 wflags	=  -Wall -Wextra \
 	-Wfloat-equal -Wshadow -Wconversion    \
 	-Wmissing-declarations -Wundef -Wuninitialized -Wcast-align \
 	-Wsign-compare -Wcast-qual -Wwrite-strings -Waggregate-return \
 	-Woverloaded-virtual \
 	-Wunreachable-code
-# -Wpacked -Wpadded #ÓÃÓÚ×îºÃµÄ¼ì²â½á¹¹ÌåÄÚ´æ¶ÔÆëÎÊÌâ
-# -Wunreachable-code #ËÀ´úÂë
+# -Wpacked -Wpadded #ç”¨äºæœ€å¥½çš„æ£€æµ‹ç»“æ„ä½“å†…å­˜å¯¹é½é—®é¢˜
+# -Wunreachable-code #æ­»ä»£ç 
 debugflag= -g
 all:$(NAME)
 $(NAME):$(SOURCE)

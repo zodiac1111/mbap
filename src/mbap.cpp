@@ -1,8 +1,8 @@
 /**
 	@file  mbap.cpp - ModBus Application Protocol
-	¿â: libmbap.so
-	µ±Ç°½öÊµÏÖÁË:0x06(¶Á¶à¸ö±£³Ö16Î»¼Ä´æÆ÷)¹¦ÄÜÂë.
-	ËùÓĞÎÄµµÔÚ±¾ÎÄ¼şµ×²¿ÁĞ³ö.
+	åº“: libmbap.so
+	å½“å‰ä»…å®ç°äº†:0x06(è¯»å¤šä¸ªä¿æŒ16ä½å¯„å­˜å™¨)åŠŸèƒ½ç .
+	æ‰€æœ‰æ–‡æ¡£åœ¨æœ¬æ–‡ä»¶åº•éƒ¨åˆ—å‡º.
 */
 #include <string.h>
 #include <stdio.h>
@@ -31,20 +31,20 @@ Cmbap::~Cmbap()
 {
 	//printf(MB_PERFIX"disconstruct class\n");
 }
-/** ÊµÀı»¯Ê±±»Ö÷³ÌĞòµ÷ÓÃÒ»´Î
-  in: tmp_portcfg ¶Ë¿ÚĞÅÏ¢½á¹¹Ìå,ÖÕ¶ËµØÖ·.
+/** å®ä¾‹åŒ–æ—¶è¢«ä¸»ç¨‹åºè°ƒç”¨ä¸€æ¬¡
+  in: tmp_portcfg ç«¯å£ä¿¡æ¯ç»“æ„ä½“,ç»ˆç«¯åœ°å€.
 */
 int Cmbap::Init(struct stPortConfig *tmp_portcfg)
 {
-	class METER_CShareMemory metershm;//´Ó¹²ÏíÄÚ´æÖĞµÃµ½±íÊıÁ¿(ñîºÏ)
+	class METER_CShareMemory metershm;//ä»å…±äº«å†…å­˜ä¸­å¾—åˆ°è¡¨æ•°é‡(è€¦åˆ)
 	this->sysConfig = metershm.GetSysConfig();
 	if(sysConfig==NULL) {
 		printf(MB_PERFIX_ERR"METER_CShareMemory metershm class\n");
 		return -1;
 	}
 	printf(MB_PERFIX"meter max quantity=%d\n",sysConfig->meter_num);
-	//slave addr / unit Identifier in mbap /ÖÕ¶ËµØÖ· in ÖÕ¶Ë (2byte)
-	//ÏÖÔÚ²¢Ã»ÓĞÇ¿ÖÆÅĞ¶ÏÕâ¸öÖÕ¶ËµØÖ·
+	//slave addr / unit Identifier in mbap /ç»ˆç«¯åœ°å€ in ç»ˆç«¯ (2byte)
+	//ç°åœ¨å¹¶æ²¡æœ‰å¼ºåˆ¶åˆ¤æ–­è¿™ä¸ªç»ˆç«¯åœ°å€
 	unit_id=u8(tmp_portcfg->m_ertuaddr>>8);//high byte of  RTU addr mast be 0
 	printf(MB_PERFIX"RTU addr high byte:%d \n",unit_id);
 	if(unit_id!=0){
@@ -62,27 +62,27 @@ int Cmbap::Init(struct stPortConfig *tmp_portcfg)
 	return 0;
 }
 
-void Cmbap::m_BroadcastTime(void)// ¹ã²¥(Ò»°ãĞ­Òé´ÓÕ¾µØÖ·0x255Îª¹ã²¥)
+void Cmbap::m_BroadcastTime(void)// å¹¿æ’­(ä¸€èˆ¬åè®®ä»ç«™åœ°å€0x255ä¸ºå¹¿æ’­)
 {
 	return;
 }
 
-/*	TODO: ´ÓÕ¾Ö÷¶¯·¢ËÍ(´ı¶¨):
-	µ±Ç°Ã»ÓĞ±»ÀûÓÃ,¿ÉÄÜµÄ»°¿ÉÒÔÓÃÀ´´ÓÕ¾Ö÷¶¯ÉÏ´«Ä³Ğ©±¨¾¯ĞÅÏ¢,
-	modbus´®¿Ú´«Í³ĞÎÊ½ÊÇ²»Ö§³Ö´ÓÕ¾Ö÷¶¯ÉÏ´«µÄ,Õâ½öÔÚmodbus/tcpÖĞ¶¨Òå.
+/*	TODO: ä»ç«™ä¸»åŠ¨å‘é€(å¾…å®š):
+	å½“å‰æ²¡æœ‰è¢«åˆ©ç”¨,å¯èƒ½çš„è¯å¯ä»¥ç”¨æ¥ä»ç«™ä¸»åŠ¨ä¸Šä¼ æŸäº›æŠ¥è­¦ä¿¡æ¯,
+	modbusä¸²å£ä¼ ç»Ÿå½¢å¼æ˜¯ä¸æ”¯æŒä»ç«™ä¸»åŠ¨ä¸Šä¼ çš„,è¿™ä»…åœ¨modbus/tcpä¸­å®šä¹‰.
 */
 void Cmbap::SendProc(void)
 {
 	return;
 }
 
-/*	´ÓÕ¾½ÓÊÕÖ÷Õ¾µÄ½ÓÊÕº¯Êı:
-	¸ÃÄ£Ê½ÊÇ´«Í³modbus/´®¿ÚºÍmodbus/tcp¶¼ÓĞµÄ.
-	½ÓÊÕ->·ÖÎö->Ö´ĞĞ->·µ»Ø(·¢ËÍ¸øÖ÷Õ¾) ¾ùÓÉ±¾º¯ÊıÊµÏÖ
-	·ÖÎö/ÑéÖ¤:	ÓÉ verify_* º¯ÊıÍê³É
-	Ö´ĞĞ:		map_dat2reg(0x06) / map_reg2dat(0x10,Î´Íê³É)
-	¹¹Ôì±¨ÎÄ:	make_msg[_excep]
-	·µ»Ø:		response_*
+/*	ä»ç«™æ¥æ”¶ä¸»ç«™çš„æ¥æ”¶å‡½æ•°:
+	è¯¥æ¨¡å¼æ˜¯ä¼ ç»Ÿmodbus/ä¸²å£å’Œmodbus/tcpéƒ½æœ‰çš„.
+	æ¥æ”¶->åˆ†æ->æ‰§è¡Œ->è¿”å›(å‘é€ç»™ä¸»ç«™) å‡ç”±æœ¬å‡½æ•°å®ç°
+	åˆ†æ/éªŒè¯:	ç”± verify_* å‡½æ•°å®Œæˆ
+	æ‰§è¡Œ:		map_dat2reg(0x06) / map_reg2dat(0x10,æœªå®Œæˆ)
+	æ„é€ æŠ¥æ–‡:	make_msg[_excep]
+	è¿”å›:		response_*
 */
 int Cmbap::ReciProc(void)
 {
@@ -95,31 +95,31 @@ int Cmbap::ReciProc(void)
 	int i;
 	int start_addr;
 	int reg_quantity;
-	//0. ½ÓÊÕ
+	//0. æ¥æ”¶
 	len=get_num(&m_recvBuf);
 	if(len==0) {
 		return 0;
 	}
 	copyfrom_buf(readbuf, &m_recvBuf, len);
-	//ÑéÖ¤1 ±¨ÎÄÑéÖ¤
+	//éªŒè¯1 æŠ¥æ–‡éªŒè¯
 	if( verify_msg(len)==false ) {
 		printf(MB_PERFIX_ERR"reci illegal message\n");
 		return 0;
 	}
 	syn_loopbuff_ptr(&m_recvBuf);
-	//½ÓÊÕÍê³É,½øĞĞ±¨ÎÄ´¦Àí:¼ìÑé,(Ö´ĞĞ)·µ»Ø
-	//¸´ÖÆ³öMBAPÍ·
+	//æ¥æ”¶å®Œæˆ,è¿›è¡ŒæŠ¥æ–‡å¤„ç†:æ£€éªŒ,(æ‰§è¡Œ)è¿”å›
+	//å¤åˆ¶å‡ºMBAPå¤´
 	memcpy(&req_mbap,&readbuf[0],sizeof(req_mbap));
-	if( unit_id != req_mbap.unitindet ) { //ºöÂÔ²»ÊÇ·¢Íù±¾Õ¾µÄ±¨ÎÄ
+	if( unit_id != req_mbap.unitindet ) { //å¿½ç•¥ä¸æ˜¯å‘å¾€æœ¬ç«™çš„æŠ¥æ–‡
 		return 0;
 	}
-	/* ÑéÖ¤ mbap unit Identifier ×Ö¶Î,±ØĞëÎª0xFF,·ñÔòºöÂÔ
-	²»ÊÇ·¢¸ømodbus/TCPÖÕ¶ËµÄ±¨ÎÄ,Îª·¢¸øÍ¬ÇøÓòÆäËûmodbus(·ÇTCP)´ÓÕ¾µÄ±¨ÎÄ
-	ÔÚÖ±Á¬modbusTCPÉè±¸µÄÍøÂçÖĞ 0×öÎªµ¥Ôª±êÊ¶Ò²ÊÇ¿ÉÒÔ½ÓÊÜµÄ. */
+	/* éªŒè¯ mbap unit Identifier å­—æ®µ,å¿…é¡»ä¸º0xFF,å¦åˆ™å¿½ç•¥
+	ä¸æ˜¯å‘ç»™modbus/TCPç»ˆç«¯çš„æŠ¥æ–‡,ä¸ºå‘ç»™åŒåŒºåŸŸå…¶ä»–modbus(éTCP)ä»ç«™çš„æŠ¥æ–‡
+	åœ¨ç›´è¿modbusTCPè®¾å¤‡çš„ç½‘ç»œä¸­ 0åšä¸ºå•å…ƒæ ‡è¯†ä¹Ÿæ˜¯å¯ä»¥æ¥å—çš„. */
 	if( req_mbap.unitindet != 0xff && req_mbap.unitindet != 0x00 ) {
 		return 0;
 	}
-	//ÑéÖ¤ mbapÍ·
+	//éªŒè¯ mbapå¤´
 	if(this->verify_mbap(req_mbap) == false) {
 		printf(MB_PERFIX_ERR"verify_mbap\n");
 		return 0;
@@ -127,9 +127,9 @@ int Cmbap::ReciProc(void)
 #if SHOW_RECI_MSG
 	printf(MB_PERFIX"<<< Reci form master:");
 	print_mbap(req_mbap);
-	fflush(stdout);//stdoutÎªĞĞ»º´æÉè±¸,Ç¿ÖÆË¢ĞÂ
+	fflush(stdout);//stdoutä¸ºè¡Œç¼“å­˜è®¾å¤‡,å¼ºåˆ¶åˆ·æ–°
 #endif
-	//ÑéÖ¤ ¹¦ÄÜÂë,
+	//éªŒè¯ åŠŸèƒ½ç ,
 	u8 funcode=readbuf[sizeof(req_mbap)];
 	if(verify_funcode(funcode)==false) {
 		printf("(%02X|NaN)\n",funcode);
@@ -138,49 +138,49 @@ int Cmbap::ReciProc(void)
 		make_msg_excep(req_mbap,rsp_mbap,excep_rsp_pdu,funcode,ERR_ILLEGAL_FUN);
 		send_response_excep(rsp_mbap,excep_rsp_pdu,m_transBuf);
 	}
-	//¸ù¾İ¹¦ÄÜÂë ÅĞ¶Ï ¸´ÖÆµ½²»Í¬µÄ ÇëÇópdu.
+	//æ ¹æ®åŠŸèƒ½ç  åˆ¤æ–­ å¤åˆ¶åˆ°ä¸åŒçš„ è¯·æ±‚pdu.
 	switch (funcode) {
 		/********************** 0x06 ******************************/
-	case MB_FUN_R_HOLD_REG ://¶Á¶à¸ö±£³Ö¼Ä´æÆ÷
+	case MB_FUN_R_HOLD_REG ://è¯»å¤šä¸ªä¿æŒå¯„å­˜å™¨
 		memcpy(&read_req_pdu,&readbuf[0]+sizeof(req_mbap)
 		       ,sizeof(read_req_pdu));
 #if SHOW_RECI_MSG
 		print_req_pdu(read_req_pdu);
 		printf("\n");
 #endif
-		//ÑéÖ¤3 pduÑéÖ¤:¹¦ÄÜÂë,¼Ä´æÆ÷µØÖ·/ÊıÁ¿(ÈôÒì³£,Ôò¹¹ÔìÒì³£pdu)
+		//éªŒè¯3 pduéªŒè¯:åŠŸèƒ½ç ,å¯„å­˜å™¨åœ°å€/æ•°é‡(è‹¥å¼‚å¸¸,åˆ™æ„é€ å¼‚å¸¸pdu)
 		verify_req= verify_req_pdu(read_req_pdu,errcode);
 		if(verify_req==false) {
-			//ÑéÖ¤´íÎó
+			//éªŒè¯é”™è¯¯
 			this->make_msg_excep(req_mbap,rsp_mbap,excep_rsp_pdu,
 					     read_req_pdu.func_code,errcode);
-			//·¢ËÍ
+			//å‘é€
 			this->send_response_excep(rsp_mbap,excep_rsp_pdu,m_transBuf);
 			return 0;
 		}
-		//¹¹ÔìÊı¾İ m_meterData ÖĞ¸´ÖÆÊı¾İµ½ reg-table
+		//æ„é€ æ•°æ® m_meterData ä¸­å¤åˆ¶æ•°æ®åˆ° reg-table
 		if(map_dat2reg(reg_table,m_meterData,read_req_pdu) != 0 ) {
-			// Ö´ĞĞÒì³£
+			// æ‰§è¡Œå¼‚å¸¸
 			make_msg_excep(req_mbap,rsp_mbap,excep_rsp_pdu,
 				       read_req_pdu.func_code,
 				       ERR_SLAVE_DEVICE_FAILURE);
-			//·¢ËÍ
+			//å‘é€
 			send_response_excep(rsp_mbap,excep_rsp_pdu,m_transBuf);
 			return 0;
 		}
-		//¹¹Ôì±¨ÎÄ
+		//æ„é€ æŠ¥æ–‡
 		if(make_msg(this->req_mbap,this->read_req_pdu
 			    ,this->rsp_mbap,this->read_rsp_pdu
 			    ,this->ppdu_dat) != 0) {
 			printf(MB_PERFIX_ERR"make msg\n");
 			return 0;
 		}
-		//·¢ËÍ
+		//å‘é€
 		this->send_response(rsp_mbap,read_rsp_pdu,
 				    &ppdu_dat[0],m_transBuf);
 		break;
 		/********************** 0x10 *****************************/
-	case MB_FUN_W_MULTI_REG://Ğ´¶à¸ö¼Ä´æÆ÷ Á÷³Ì:²Î¿¼ÎÄµµ[3].p31 TODO
+	case MB_FUN_W_MULTI_REG://å†™å¤šä¸ªå¯„å­˜å™¨ æµç¨‹:å‚è€ƒæ–‡æ¡£[3].p31 TODO
 		memcpy(&write_req_pdu,&readbuf[0]+sizeof(req_mbap)//pdu
 		       ,sizeof(write_req_pdu));
 #if SHOW_RECI_MSG
@@ -188,10 +188,10 @@ int Cmbap::ReciProc(void)
 #endif
 		verify_req= verify_req_pdu(write_req_pdu,errcode);
 		if(verify_req==false) {
-			//ÑéÖ¤´íÎó
+			//éªŒè¯é”™è¯¯
 			this->make_msg_excep(req_mbap,rsp_mbap,excep_rsp_pdu,
 					     write_req_pdu.func_code,errcode);
-			//·¢ËÍ
+			//å‘é€
 			this->send_response_excep(rsp_mbap,excep_rsp_pdu,m_transBuf);
 			return 0;
 		}
@@ -203,7 +203,7 @@ int Cmbap::ReciProc(void)
 		print_pdu_dat(ppdu_dat, write_req_pdu.byte_count);
 		printf("\n");
 #endif
-		//Ğ´¼Ä´æÆ÷²Ù×÷ (DEMO)
+		//å†™å¯„å­˜å™¨æ“ä½œ (DEMO)
 		start_addr=(write_req_pdu.start_addr_hi<<8)
 			   +write_req_pdu.start_addr_lo;
 		reg_quantity=(write_req_pdu.reg_quantity_hi<<8)
@@ -213,7 +213,7 @@ int Cmbap::ReciProc(void)
 			printf("regtable=%X ;",reg_table[start_addr+i]);
 		}
 		map_reg2dat(reg_table,m_meterData,write_req_pdu);
-		//¹¹Ôì±¨ÎÄ
+		//æ„é€ æŠ¥æ–‡
 		if(make_msg(this->req_mbap,this->write_req_pdu
 			    ,this->rsp_mbap,this->write_rsp_pdu) != 0) {
 			printf(MB_PERFIX_ERR"make msg\n");
@@ -229,16 +229,16 @@ int Cmbap::ReciProc(void)
 	return 0;
 }
 
-/*	·¢ËÍ±¨ÎÄ(¹¦ÄÜÂë 0x06) ËùÓĞ½á¹¹¶¼ÊÇ¶ÔÓÚ 0x06¹¦ÄÜµÄ
-	ÊäÈë: response_mbap  response_pdu  pdu_dat[256]
-	Êä³ö: transBuf(struct)	·¢ËÍµÄ±¨ÎÄ.
+/*	å‘é€æŠ¥æ–‡(åŠŸèƒ½ç  0x06) æ‰€æœ‰ç»“æ„éƒ½æ˜¯å¯¹äº 0x06åŠŸèƒ½çš„
+	è¾“å…¥: response_mbap  response_pdu  pdu_dat[256]
+	è¾“å‡º: transBuf(struct)	å‘é€çš„æŠ¥æ–‡.
 */
 int Cmbap::send_response(const struct mbap_head mbap
 			 ,const struct mb_read_rsp_pdu pdu
 			 ,const rsp_dat pdu_dat[256]
 			 ,TransReceiveBuf &transBuf)const
 {
-	//ÏìÓ¦·µ»Ø send msg (to m_transBuf.m_transceiveBuf Êı×é)
+	//å“åº”è¿”å› send msg (to m_transBuf.m_transceiveBuf æ•°ç»„)
 	memcpy(&transBuf.m_transceiveBuf[0]	//mbap
 	       ,&mbap,sizeof(mbap));//
 	memcpy(&transBuf.m_transceiveBuf[0]+sizeof(mbap)//pdu
@@ -269,9 +269,9 @@ int Cmbap::send_response(const struct mbap_head mbap
 #endif
 	return 0 ;
 }
-/*	·¢ËÍ±¨ÎÄ(¹¦ÄÜÂë 0x10) ËùÓĞ½á¹¹¶¼ÊÇ¶ÔÓÚ 0x10¹¦ÄÜµÄ
-	ÊäÈë: response_mbap  response_pdu
-	Êä³ö: transBuf(struct)	·¢ËÍµÄ±¨ÎÄ.
+/*	å‘é€æŠ¥æ–‡(åŠŸèƒ½ç  0x10) æ‰€æœ‰ç»“æ„éƒ½æ˜¯å¯¹äº 0x10åŠŸèƒ½çš„
+	è¾“å…¥: response_mbap  response_pdu
+	è¾“å‡º: transBuf(struct)	å‘é€çš„æŠ¥æ–‡.
 */
 int Cmbap::send_response(const struct mbap_head mbap
 			 ,const struct mb_write_rsp_pdu pdu
@@ -299,7 +299,7 @@ int Cmbap::send_response(const struct mbap_head mbap
 	//	       transBuf.m_transceiveBuf[6],transBuf.m_transCount);
 	return 0 ;
 }
-//·¢ËÍÒì³£·µ»Ø±¨ÎÄ
+//å‘é€å¼‚å¸¸è¿”å›æŠ¥æ–‡
 int Cmbap::send_response_excep(const struct mbap_head mbap,
 			       const struct mb_excep_rsp_pdu pdu,
 			       struct TransReceiveBuf &transBuf )const
@@ -317,13 +317,13 @@ int Cmbap::send_response_excep(const struct mbap_head mbap,
 #endif
 	return 0;
 }
-/*	¹¹½¨ÏìÓ¦ 0x06 µÄ·µ»ØµÄ±¨ÎÄ
-	ÊäÈë:	request_mbap (const)	ÇëÇóµÄ mbap
-		request_pdu  (const)	ÇëÇóµÄ pdu
-	Êä³ö:	respond_mbap(&mbap_head)ÏìÓ¦µÄ mbap
-		respond_pdu(&mbap_head)	ÏìÓ¦µÄ (Õı³£)pdu
-		pdu_dat (u8[256])	·µ»Ø±¨ÎÄÊı¾İ pdu-dat
-	return:	0-³É¹¦ other-Ê§°Ü
+/*	æ„å»ºå“åº” 0x06 çš„è¿”å›çš„æŠ¥æ–‡
+	è¾“å…¥:	request_mbap (const)	è¯·æ±‚çš„ mbap
+		request_pdu  (const)	è¯·æ±‚çš„ pdu
+	è¾“å‡º:	respond_mbap(&mbap_head)å“åº”çš„ mbap
+		respond_pdu(&mbap_head)	å“åº”çš„ (æ­£å¸¸)pdu
+		pdu_dat (u8[256])	è¿”å›æŠ¥æ–‡æ•°æ® pdu-dat
+	return:	0-æˆåŠŸ other-å¤±è´¥
   */
 int Cmbap::make_msg( const struct mbap_head request_mbap
 		     ,const struct mb_read_req_pdu request_pdu
@@ -331,19 +331,19 @@ int Cmbap::make_msg( const struct mbap_head request_mbap
 		     ,struct mb_read_rsp_pdu &respond_pdu
 		     ,u8 pdu_dat[256])const
 {
-	int i; //¹¹ÔìÇ°µÄ×¼±¸¹¤×÷
+	int i; //æ„é€ å‰çš„å‡†å¤‡å·¥ä½œ
 	int start_addr=request_pdu.start_addr_hi*256+request_pdu.start_addr_lo;
 	int reg_quantity=request_pdu.reg_quantity_hi*256+request_pdu.reg_quantity_lo;
 	respond_pdu.byte_count=u8(reg_quantity*BYTE_PER_REG);
-	//¹¹½¨mbap pdu ºÍpdu-dat ²¢×¼±¸·¢ËÍ
+	//æ„å»ºmbap pdu å’Œpdu-dat å¹¶å‡†å¤‡å‘é€
 	//mbap
-	respond_mbap.TransID_hi=request_mbap.TransID_hi;//ĞòÁĞ¸ß
-	respond_mbap.TransID_lo=request_mbap.TransID_lo;//ĞòÁĞµÍ
-	respond_mbap.protocolhead_hi=request_mbap.protocolhead_hi;//Ğ­Òé¸ß
-	respond_mbap.protocolhead_lo=request_mbap.protocolhead_lo;//Ğ­ÒéµÍ
-	respond_mbap.len_hi=request_mbap.len_hi;//³¤¶È¸ß(Ó¦¸ÃÎª0)
-	respond_mbap.len_lo=u8(sizeof(respond_mbap.unitindet) //³¤¶ÈµÍ= 1bytµÄ´ÓÕ¾µØÖ·
-			       +sizeof(respond_pdu) // + 2byteµÄ funcode+datlen
+	respond_mbap.TransID_hi=request_mbap.TransID_hi;//åºåˆ—é«˜
+	respond_mbap.TransID_lo=request_mbap.TransID_lo;//åºåˆ—ä½
+	respond_mbap.protocolhead_hi=request_mbap.protocolhead_hi;//åè®®é«˜
+	respond_mbap.protocolhead_lo=request_mbap.protocolhead_lo;//åè®®ä½
+	respond_mbap.len_hi=request_mbap.len_hi;//é•¿åº¦é«˜(åº”è¯¥ä¸º0)
+	respond_mbap.len_lo=u8(sizeof(respond_mbap.unitindet) //é•¿åº¦ä½= 1bytçš„ä»ç«™åœ°å€
+			       +sizeof(respond_pdu) // + 2byteçš„ funcode+datlen
 			       +respond_pdu.byte_count); // + dat len(byte)
 	respond_mbap.unitindet=request_mbap.unitindet;
 	//pdu
@@ -351,7 +351,7 @@ int Cmbap::make_msg( const struct mbap_head request_mbap
 	respond_pdu.byte_count=u8(reg_quantity*BYTE_PER_REG);
 	//pdu-dat
 	for(i=0; i<reg_quantity; i++) {
-		//modbus16Î»¼Ä´æÆ÷´«ÊäË³Ğò:¸ß×Ö½ÚÔÚÇ°,µÍ×Ö½ÚÔÚºó
+		//modbus16ä½å¯„å­˜å™¨ä¼ è¾“é¡ºåº:é«˜å­—èŠ‚åœ¨å‰,ä½å­—èŠ‚åœ¨å
 		pdu_dat[i*2+0]=u8((reg_table[start_addr+i] & 0xFF00)>>8);
 		pdu_dat[i*2+1]=u8((reg_table[start_addr+i] & 0x00FF));
 #ifdef READ_DATE_PAND_DBG
@@ -361,12 +361,12 @@ int Cmbap::make_msg( const struct mbap_head request_mbap
 	}
 	return 0;
 }
-/*	¹¹½¨ÏìÓ¦ 0x10 µÄ·µ»ØµÄ±¨ÎÄ
-	ÊäÈë:	request_mbap (const)	ÇëÇóµÄ mbap
-		request_pdu  (const)	ÇëÇóµÄ pdu
-	Êä³ö:	respond_mbap(&mbap_head)ÏìÓ¦µÄ mbap
-		respond_pdu(&mbap_head)	ÏìÓ¦µÄ (Õı³£)pdu
-	return:	0-³É¹¦ other-Ê§°Ü
+/*	æ„å»ºå“åº” 0x10 çš„è¿”å›çš„æŠ¥æ–‡
+	è¾“å…¥:	request_mbap (const)	è¯·æ±‚çš„ mbap
+		request_pdu  (const)	è¯·æ±‚çš„ pdu
+	è¾“å‡º:	respond_mbap(&mbap_head)å“åº”çš„ mbap
+		respond_pdu(&mbap_head)	å“åº”çš„ (æ­£å¸¸)pdu
+	return:	0-æˆåŠŸ other-å¤±è´¥
   */
 int Cmbap::make_msg( const struct mbap_head request_mbap
 		     ,const struct mb_write_req_pdu request_pdu
@@ -374,12 +374,12 @@ int Cmbap::make_msg( const struct mbap_head request_mbap
 		     ,struct mb_write_rsp_pdu &respond_pdu)const
 {
 	//mbap
-	respond_mbap.TransID_hi=request_mbap.TransID_hi;//ĞòÁĞ¸ß
-	respond_mbap.TransID_lo=request_mbap.TransID_lo;//ĞòÁĞµÍ
-	respond_mbap.protocolhead_hi=request_mbap.protocolhead_hi;//Ğ­Òé¸ß
-	respond_mbap.protocolhead_lo=request_mbap.protocolhead_lo;//Ğ­ÒéµÍ
-	respond_mbap.len_hi=request_mbap.len_hi;//³¤¶È¸ß(Ó¦¸ÃÎª0)
-	respond_mbap.len_lo=u8(sizeof(respond_mbap.unitindet) //³¤¶ÈµÍ= 1bytµÄ´ÓÕ¾µØÖ·
+	respond_mbap.TransID_hi=request_mbap.TransID_hi;//åºåˆ—é«˜
+	respond_mbap.TransID_lo=request_mbap.TransID_lo;//åºåˆ—ä½
+	respond_mbap.protocolhead_hi=request_mbap.protocolhead_hi;//åè®®é«˜
+	respond_mbap.protocolhead_lo=request_mbap.protocolhead_lo;//åè®®ä½
+	respond_mbap.len_hi=request_mbap.len_hi;//é•¿åº¦é«˜(åº”è¯¥ä¸º0)
+	respond_mbap.len_lo=u8(sizeof(respond_mbap.unitindet) //é•¿åº¦ä½= 1bytçš„ä»ç«™åœ°å€
 			       +sizeof(respond_pdu)); // + pdu
 	respond_mbap.unitindet=request_mbap.unitindet;
 	//pdu
@@ -390,9 +390,9 @@ int Cmbap::make_msg( const struct mbap_head request_mbap
 	respond_pdu.reg_quantity_lo=request_pdu.reg_quantity_lo;
 	return 0;
 }
-/*¹¹ÔìÒì³£·µ»Ø±¨ÎÄ
-  in: request_mbap ÇëÇóÍ· func_code¹¦ÄÜÂë exception_codeÒì³£Öµ
-  out:&respond_mbap Ó¦´ğÍ·,&excep_pdu Òì³£Êı¾İµ¥Ôª
+/*æ„é€ å¼‚å¸¸è¿”å›æŠ¥æ–‡
+  in: request_mbap è¯·æ±‚å¤´ func_codeåŠŸèƒ½ç  exception_codeå¼‚å¸¸å€¼
+  out:&respond_mbap åº”ç­”å¤´,&excep_pdu å¼‚å¸¸æ•°æ®å•å…ƒ
   */
 int Cmbap::make_msg_excep(const struct mbap_head request_mbap,
 			  struct mbap_head &respond_mbap,
@@ -406,7 +406,7 @@ int Cmbap::make_msg_excep(const struct mbap_head request_mbap,
 	excep_pdu.exception_code=exception_code;
 	return 0;
 }
-//	ÊäÈëÑéÖ¤ :ÑéÖ¤ĞÅÏ¢Ìå(±¨ÎÄ),ÕûÌå³¤¶È(´óÓÚ7+1¼´ºÏÀí)
+//	è¾“å…¥éªŒè¯ :éªŒè¯ä¿¡æ¯ä½“(æŠ¥æ–‡),æ•´ä½“é•¿åº¦(å¤§äº7+1å³åˆç†)
 bool Cmbap::verify_msg( unsigned short len) const
 {
 	if(len<(sizeof(struct mbap_head)+1 /*funcode*/)) {
@@ -416,40 +416,40 @@ bool Cmbap::verify_msg( unsigned short len) const
 	return true;
 }
 
-/*	ÊäÈëÑéÖ¤ :ÑéÖ¤mbapÍ·µÄºÏ·¨ĞÔ ºÏ·¨·µ»Ø true ·ñÔò·µ»Ø false ²Î¿¼ÎÄµµ4
+/*	è¾“å…¥éªŒè¯ :éªŒè¯mbapå¤´çš„åˆæ³•æ€§ åˆæ³•è¿”å› true å¦åˆ™è¿”å› false å‚è€ƒæ–‡æ¡£4
 */
 bool Cmbap::verify_mbap(const struct mbap_head request_mbap) const
 {
-	//1. ĞòÁĞºÅ:
-	//	¶ÔÓÚ´ÓÕ¾,ºöÂÔÇ°2¸ö×Ö½Ú,½ö½ö¸´ÖÆ ·µ»Ø¾ÍĞĞÁË
-	//	¶ÔÓÚÖ÷Õ¾,ÔòĞèÒª¼ì²éĞòÁĞºÅÊÇ·ñÊ±Ö®Ç°×Ô¼º·¢ËÍµÄµÄĞòÁĞºÅ.
-	//2. Ğ­Òé: 0x0000 Îª modbus
+	//1. åºåˆ—å·:
+	//	å¯¹äºä»ç«™,å¿½ç•¥å‰2ä¸ªå­—èŠ‚,ä»…ä»…å¤åˆ¶ è¿”å›å°±è¡Œäº†
+	//	å¯¹äºä¸»ç«™,åˆ™éœ€è¦æ£€æŸ¥åºåˆ—å·æ˜¯å¦æ—¶ä¹‹å‰è‡ªå·±å‘é€çš„çš„åºåˆ—å·.
+	//2. åè®®: 0x0000 ä¸º modbus
 	if(!(request_mbap.protocolhead_hi==0x00
 	     && request_mbap.protocolhead_lo==0x00)) {
 		printf(MB_PERFIX_ERR"mbap protocol not modbus/tcp protocol.\n");
 		return false;
 	}
-	//3. ³¤¶È:
+	//3. é•¿åº¦:
 	// verify 5th byte is zero (upper length byte = zero as length MUST be
-	// less than 256) ÑéÖ¤³¤¶È
+	// less than 256) éªŒè¯é•¿åº¦
 	if(request_mbap.len_hi != 0x00 ) {
 		printf(MB_PERFIX_ERR"mbap the length of msg is too long.\n");
 		return false;
 	}
-	/*4. ´ÓÕ¾±àºÅ [2,247(?)]//¶ÔÓÚTCP/IP,Ê¹ÓÃIPµØÖ·Ñ°Ö·,Õâ¸ö±êÊ¶·ûÊÇÎŞÓÃµÄ
-	½¨Òé /±ØĞëÊ¹ÓÃ 0xFF ,ÔÚÓë´®¿ÚÍ¨Ñ¶µÄ´ÓÕ¾(¼ÓÍø¹Ø)Ò»Æğ¹¤×÷ÔÚipÍøÂçÊ±,
-	±ØĞëÉèÖÃ³É0xFF.ÒÔ·ÀÖ¹¸Ã±¨ÎÄ±»´®ĞĞÍ¨Ñ¶µÄ´ÓÕ¾Éè±¸´íÎóµÄ½ÓÊÕ.
-	** ²Î¿¼ÎÄµµ4,µÚ23Ò³ Unit Identifier Ğ¡½Ú
+	/*4. ä»ç«™ç¼–å· [2,247(?)]//å¯¹äºTCP/IP,ä½¿ç”¨IPåœ°å€å¯»å€,è¿™ä¸ªæ ‡è¯†ç¬¦æ˜¯æ— ç”¨çš„
+	å»ºè®® /å¿…é¡»ä½¿ç”¨ 0xFF ,åœ¨ä¸ä¸²å£é€šè®¯çš„ä»ç«™(åŠ ç½‘å…³)ä¸€èµ·å·¥ä½œåœ¨ipç½‘ç»œæ—¶,
+	å¿…é¡»è®¾ç½®æˆ0xFF.ä»¥é˜²æ­¢è¯¥æŠ¥æ–‡è¢«ä¸²è¡Œé€šè®¯çš„ä»ç«™è®¾å¤‡é”™è¯¯çš„æ¥æ”¶.
+	** å‚è€ƒæ–‡æ¡£4,ç¬¬23é¡µ Unit Identifier å°èŠ‚
 	*/
-	//·Åµ½ÍâÃæ(ReciProcº¯Êı£¬verify_mbapµ÷ÓÃÖ®Ç°)¼ì²â.
+	//æ”¾åˆ°å¤–é¢(ReciProcå‡½æ•°ï¼Œverify_mbapè°ƒç”¨ä¹‹å‰)æ£€æµ‹.
 	return true;
 }
 
-/*	ÊäÈëÑéÖ¤
-	ÑéÖ¤¹¦ÄÜÂë
-	ÅĞ¶Ï¹¦ÄÜÂëÊÇ·ñ·Ç·¨,Î´ÊµÏÖµÄ¹¦ÄÜÒ²ÊÇ²»ºÏ·¨
-	param : ¹¦ÄÜÂë
-	return: true:Í¨¹ıÑéÖ¤	false:²»ºÏ·¨
+/*	è¾“å…¥éªŒè¯
+	éªŒè¯åŠŸèƒ½ç 
+	åˆ¤æ–­åŠŸèƒ½ç æ˜¯å¦éæ³•,æœªå®ç°çš„åŠŸèƒ½ä¹Ÿæ˜¯ä¸åˆæ³•
+	param : åŠŸèƒ½ç 
+	return: true:é€šè¿‡éªŒè¯	false:ä¸åˆæ³•
 */
 bool Cmbap::verify_funcode( u8  funcode) const
 {
@@ -466,17 +466,17 @@ bool Cmbap::verify_funcode( u8  funcode) const
 		return false;
 		break;
 		/* .add other funcode here */
-	default://ÆäËû¹¦ÄÜÂë²»±»Ö§³Ö
+	default://å…¶ä»–åŠŸèƒ½ç ä¸è¢«æ”¯æŒ
 		break;
 	}
 	return false;
 }
 
-/*	ÊäÈëÑéÖ¤  pduµ¥Ôª,¼Ä´æÆ÷µØÖ·/ÊıÁ¿ÑéÖ¤
-	ÑéÖ¤ req_pdu
-	ÊäÈë:	req_pdu
-	Êä³ö:	excep_rsp_pdu(²»ºÏ·¨Ê±ÉèÖÃ | ºÏ·¨Ê±²»±ä)
-	·µ»ØÖµ	: true:ÑéÖ¤Í¨¹ı	fasle:²»ºÏ·¨
+/*	è¾“å…¥éªŒè¯  pduå•å…ƒ,å¯„å­˜å™¨åœ°å€/æ•°é‡éªŒè¯
+	éªŒè¯ req_pdu
+	è¾“å…¥:	req_pdu
+	è¾“å‡º:	excep_rsp_pdu(ä¸åˆæ³•æ—¶è®¾ç½® | åˆæ³•æ—¶ä¸å˜)
+	è¿”å›å€¼	: true:éªŒè¯é€šè¿‡	fasle:ä¸åˆæ³•
 */
 bool Cmbap:: verify_req_pdu(const struct mb_read_req_pdu request_pdu,
 			    u8 &errcode) const
@@ -498,7 +498,7 @@ bool Cmbap:: verify_req_pdu(const struct mb_read_req_pdu request_pdu,
 	}
 	return true;
 }
-/*ÑéÖ¤request_pdu
+/*éªŒè¯request_pdu
 */
 bool Cmbap:: verify_req_pdu(const struct mb_write_req_pdu request_pdu,
 			    u8 &errcode) const
@@ -522,9 +522,9 @@ bool Cmbap:: verify_req_pdu(const struct mb_write_req_pdu request_pdu,
 	return true;
 }
 
-/*	ÊäÈëÑéÖ¤:ÑéÖ¤ ¼Ä´æÆ÷ÊıÁ¿ ÊÇ·ñ·ûºÏÏàÓ¦µÄ¹¦ÄÜÂë
-	ÊäÈë:	req_pdu
-	Êä³ö:	reg_quantity¼Ä´æÆ÷ÊıÁ¿
+/*	è¾“å…¥éªŒè¯:éªŒè¯ å¯„å­˜å™¨æ•°é‡ æ˜¯å¦ç¬¦åˆç›¸åº”çš„åŠŸèƒ½ç 
+	è¾“å…¥:	req_pdu
+	è¾“å‡º:	reg_quantityå¯„å­˜å™¨æ•°é‡
 */
 bool Cmbap::verify_reg_quantity(const struct mb_read_req_pdu request_pdu
 				,int &reg_quantity)const
@@ -536,7 +536,7 @@ bool Cmbap::verify_reg_quantity(const struct mb_read_req_pdu request_pdu
 	}
 	return true;
 }
-/* ÑéÖ¤¼Ä´æÆ÷ÊıÁ¿
+/* éªŒè¯å¯„å­˜å™¨æ•°é‡
 */
 bool Cmbap::verify_reg_quantity(const struct mb_write_req_pdu request_pdu
 				,int &reg_quantity)const
@@ -552,10 +552,10 @@ bool Cmbap::verify_reg_quantity(const struct mb_write_req_pdu request_pdu
 	}
 	return true;
 }
-/*	ÊäÈëÑéÖ¤ :ÑéÖ¤ ¼Ä´æÆ÷ µØÖ· ÊÇ·ñ·ûºÏÏàÓ¦µÄ¹¦ÄÜÂë
+/*	è¾“å…¥éªŒè¯ :éªŒè¯ å¯„å­˜å™¨ åœ°å€ æ˜¯å¦ç¬¦åˆç›¸åº”çš„åŠŸèƒ½ç 
 	in:	request_pdu
-	out:	start_addr ¿ªÊ¼µØÖ·
-		end_addr ½áÊøµØÖ·
+	out:	start_addr å¼€å§‹åœ°å€
+		end_addr ç»“æŸåœ°å€
 */
 bool Cmbap::verify_reg_addr(const struct mb_read_req_pdu request_pdu,
 			    int &start_addr,int &end_addr )const
@@ -565,7 +565,7 @@ bool Cmbap::verify_reg_addr(const struct mb_read_req_pdu request_pdu,
 		     +request_pdu.reg_quantity_lo;
 	start_addr=(request_pdu.start_addr_hi << 8) +request_pdu.start_addr_lo;
 	end_addr=start_addr+reg_quantity-1;
-	// ÆğÊ¼ºÍ½áÊøµØÖ·[0x0000,0xFFFF]
+	// èµ·å§‹å’Œç»“æŸåœ°å€[0x0000,0xFFFF]
 	if(start_addr<0x0000 || start_addr >0xFFFF
 	   || end_addr<0x0000 || end_addr >0xFFFF ) {
 		return false;
@@ -580,81 +580,81 @@ bool Cmbap::verify_reg_addr(const struct mb_write_req_pdu request_pdu,
 		     +request_pdu.reg_quantity_lo;
 	start_addr=(request_pdu.start_addr_hi<<8)+request_pdu.start_addr_lo;
 	end_addr=start_addr+reg_quantity-1;
-	// ÆğÊ¼ºÍ½áÊøµØÖ·[0x0000,0xFFFF]
+	// èµ·å§‹å’Œç»“æŸåœ°å€[0x0000,0xFFFF]
 	if(start_addr<0x0000 || start_addr >0xFFFF
 	   || end_addr<0x0000 || end_addr >0xFFFF ) {
 		return false;
 	}
 	return true;
 }
-/********************* Ò»ÏµÁĞÊı¾İ¸ñÊ½×ª»»º¯Êı **************************/
-//½«32Î» int ĞÍÊı¾İ ×ª»¯³ÉÎª 2¸ö modbus¼Ä´æÆ÷(16Î»)µÄĞÎÊ½ µÄ¸ß16Î»
+/********************* ä¸€ç³»åˆ—æ•°æ®æ ¼å¼è½¬æ¢å‡½æ•° **************************/
+//å°†32ä½ int å‹æ•°æ® è½¬åŒ–æˆä¸º 2ä¸ª modbuså¯„å­˜å™¨(16ä½)çš„å½¢å¼ çš„é«˜16ä½
 inline void Cmbap::dat2mbreg_hi16bit(u16 reg[1], unsigned int &dat32,int dir=0)
 const
 {
 	if(dir==0) {
-		reg[0]=u16((dat32 & 0xFFFF0000)>>16);//¸ß16bit
+		reg[0]=u16((dat32 & 0xFFFF0000)>>16);//é«˜16bit
 	} else {
 		dat32=(dat32 & 0x0000FFFF) | (reg[0]<<16);
 		printf("dat32=%X reg=%X ",dat32,reg[0]);
 	}
 }
-//½«32Î» int ĞÍÊı¾İ ×ª»¯³ÉÎª 2¸ö modbus¼Ä´æÆ÷(16Î»)µÄĞÎÊ½
+//å°†32ä½ int å‹æ•°æ® è½¬åŒ–æˆä¸º 2ä¸ª modbuså¯„å­˜å™¨(16ä½)çš„å½¢å¼
 inline void Cmbap::dat2mbreg_lo16bit(u16 reg[1], unsigned int &dat32,int dir=0)
 const
 {
 	if(dir==0) {
-		reg[0]=u16((dat32 & 0x0000FFFF)>>0); //µÍ16bit
+		reg[0]=u16((dat32 & 0x0000FFFF)>>0); //ä½16bit
 	} else {
 		dat32=(dat32 & 0xFFFF0000) | reg[0];
 		printf("dat32=%X reg=%X ",dat32,reg[0]);
 	}
 }
-//½«32Î» in tĞÍÊı¾İ ×ª»¯³ÉÎª 2¸ö modbus¼Ä´æÆ÷(16Î»)µÄĞÎÊ½
+//å°†32ä½ in tå‹æ•°æ® è½¬åŒ–æˆä¸º 2ä¸ª modbuså¯„å­˜å™¨(16ä½)çš„å½¢å¼
 inline void Cmbap::dat2mbreg_hi16bit(u16 reg[1],const signed int dat32) const
 {
-	reg[0]=u16((dat32 & 0xFFFF0000)>>16);//¸ß2×Ö½ÚÔÚºó
+	reg[0]=u16((dat32 & 0xFFFF0000)>>16);//é«˜2å­—èŠ‚åœ¨å
 }
-//½«32Î» in tĞÍÊı¾İ ×ª»¯³ÉÎª 2¸ö modbus¼Ä´æÆ÷(16Î»)µÄĞÎÊ½
+//å°†32ä½ in tå‹æ•°æ® è½¬åŒ–æˆä¸º 2ä¸ª modbuså¯„å­˜å™¨(16ä½)çš„å½¢å¼
 inline void Cmbap::dat2mbreg_lo16bit(u16 reg[1],const signed int dat32) const
 {
-	reg[0]=u16((dat32 & 0x0000FFFF)>>0); //µÍ2×Ö½ÚÔÚÇ°(Õâ¸öË³ĞòÊÇmodbus¾ö¶¨µÄ)
+	reg[0]=u16((dat32 & 0x0000FFFF)>>0); //ä½2å­—èŠ‚åœ¨å‰(è¿™ä¸ªé¡ºåºæ˜¯modbuså†³å®šçš„)
 }
-//½«32Î» float ĞÍÊı¾İ ×ª»¯±£´æÔÚ 2¸ö modbus ¼Ä´æÆ÷(16Î»)ÖĞ(¸ß16Î»)
+//å°†32ä½ float å‹æ•°æ® è½¬åŒ–ä¿å­˜åœ¨ 2ä¸ª modbus å¯„å­˜å™¨(16ä½)ä¸­(é«˜16ä½)
 inline void Cmbap::dat2mbreg_hi16bit(u16 reg[1],const float float32) const
 {
-	//IEEE 754 float ¸ñÊ½,ÔÚÏß×ª»» http://babbage.cs.qc.cuny.edu/IEEE-754/
+	//IEEE 754 float æ ¼å¼,åœ¨çº¿è½¬æ¢ http://babbage.cs.qc.cuny.edu/IEEE-754/
 	reg[0]=u16(( *(int *)&float32 & 0xFFFF0000)>>16);
 }
-//½«32Î» float ĞÍÊı¾İ ×ª»¯±£´æÔÚ 2¸ö modbus ¼Ä´æÆ÷(16Î»)ÖĞ(µÍ16Î»)
+//å°†32ä½ float å‹æ•°æ® è½¬åŒ–ä¿å­˜åœ¨ 2ä¸ª modbus å¯„å­˜å™¨(16ä½)ä¸­(ä½16ä½)
 inline void Cmbap::dat2mbreg_lo16bit(u16 reg[1],const float float32) const
 {
 	reg[0]=u16(( *(int *)&float32 & 0x0000FFFF)>>0);
 }
-//½«16Î» short ĞÍÊı¾İ ×ª»¯³ÉÎª 1¸ö modbus¼Ä´æÆ÷(16Î»)µÄĞÎÊ½
+//å°†16ä½ short å‹æ•°æ® è½¬åŒ–æˆä¸º 1ä¸ª modbuså¯„å­˜å™¨(16ä½)çš„å½¢å¼
 inline void Cmbap::dat2mbreg(u16 reg[1],const short dat16) const
 {
 	reg[0]=dat16;
 }
-//½« 2 ¸ö 8Î» char Êı¾İ ºÏ³É³ÉÎª 1¸ö modbus¼Ä´æÆ÷(16Î»)µÄĞÎÊ½
+//å°† 2 ä¸ª 8ä½ char æ•°æ® åˆæˆæˆä¸º 1ä¸ª modbuså¯„å­˜å™¨(16ä½)çš„å½¢å¼
 inline void Cmbap::dat2mbreg(u16 reg[1]
 			     ,const char high_byte,const char low_byte) const
 {
 	reg[0]=u16( (high_byte<<8) + low_byte) ;
 }
 
-/************************ Ò»ÏµÁĞ´òÓ¡º¯Êı *******************************/
-//´òÓ¡ mbap Í·ĞÅÏ¢ ÇëÇóºÍÏìÓ¦ ¸ñÊ½ÏàÍ¬
+/************************ ä¸€ç³»åˆ—æ‰“å°å‡½æ•° *******************************/
+//æ‰“å° mbap å¤´ä¿¡æ¯ è¯·æ±‚å’Œå“åº” æ ¼å¼ç›¸åŒ
 void Cmbap::print_mbap( const struct mbap_head mbap) const
 {
 	printf("{%02X %02X|%02X %02X|%02X %02X|%02X}"
-	       ,mbap.TransID_hi,mbap.TransID_lo //ÊÂÎñ´¦Àí
-	       ,mbap.protocolhead_hi,mbap.protocolhead_lo //Ğ­Òé
-	       ,mbap.len_hi,mbap.len_lo //³¤¶È
-	       ,mbap.unitindet); //µ¥Ôª
+	       ,mbap.TransID_hi,mbap.TransID_lo //äº‹åŠ¡å¤„ç†
+	       ,mbap.protocolhead_hi,mbap.protocolhead_lo //åè®®
+	       ,mbap.len_hi,mbap.len_lo //é•¿åº¦
+	       ,mbap.unitindet); //å•å…ƒ
 	fflush(stdout);
 }
-//´òÓ¡ÇëÇópdu
+//æ‰“å°è¯·æ±‚pdu
 inline void Cmbap::print_req_pdu(const struct mb_read_req_pdu request_pdu)const
 {
 	printf("(%02X|%02X %02X|%02X %02X)"
@@ -665,7 +665,7 @@ inline void Cmbap::print_req_pdu(const struct mb_read_req_pdu request_pdu)const
 	       ,request_pdu.reg_quantity_lo);
 	fflush(stdout);
 }
-//´òÓ¡ÇëÇópdu
+//æ‰“å°è¯·æ±‚pdu
 inline void Cmbap::print_req_pdu(const struct mb_write_req_pdu request_pdu)const
 {
 	printf("(%02X|%02X %02X|%02X %02X|%02X)"
@@ -677,7 +677,7 @@ inline void Cmbap::print_req_pdu(const struct mb_write_req_pdu request_pdu)const
 	       ,request_pdu.byte_count);
 	fflush(stdout);
 }
-//´òÓ¡Òì³£ÏìÓ¦pdu
+//æ‰“å°å¼‚å¸¸å“åº”pdu
 inline void Cmbap::print_rsp_pdu(
     const struct mb_excep_rsp_pdu excep_respond_pdu)const
 {
@@ -686,7 +686,7 @@ inline void Cmbap::print_rsp_pdu(
 	       ,excep_respond_pdu.exception_code);
 	fflush(stdout);
 }
-//´òÓ¡Õı³£ÏìÓ¦pdu 0x06 x010
+//æ‰“å°æ­£å¸¸å“åº”pdu 0x06 x010
 inline void Cmbap::print_rsp_pdu(const struct mb_read_rsp_pdu respond_pdu)
 const
 {
@@ -706,7 +706,7 @@ const
 	       ,respond_pdu.reg_quantity_lo);
 	fflush(stdout);
 }
-/*´òÓ¡ÏìÓ¦pduÊı¾İÌå
+/*æ‰“å°å“åº”pduæ•°æ®ä½“
   In pdu_dat
   In bytecount
 */
@@ -722,13 +722,13 @@ inline void Cmbap::print_pdu_dat(  const u8  pdu_dat[], u8 bytecount)const
 	fflush(stdout);
 }
 
-/*	½«Ò»Ğ©±ØÒªµÄÊı¾İ´Ó stMeter_Run_data ½á¹¹ÌåÖĞ¸´ÖÆ(Ó³Éä)µ½
-	reg_tbl ¼Ä´æÆ÷±íÒÔ±ã¶ÁÈ¡ÕâĞ©Êı¾İ
-	ÊäÈë:	struct stMeter_Run_data meter[MAXMETER]
-	Êä³ö:	u16  reg[0xFFFF+1] ¼Ä´æÆ÷±í
-	TODO:	Ä¿Ç°Ö÷Õ¾ÇëÇóÒ»´Î,¸´ÖÆÈ«²¿±äÁ¿µ½¼Ä´æÆ÷Êı×é,ÉÔÏÔÀË·Ñ.
-		Ó¦¸Ä½øĞ§ÂÊ,½ö¸´ÖÆĞèÒªµÄ½á¹¹Ìå±äÁ¿.
-	NOTE:	modbus¼Ä´æÆ÷ÆğÊ¼µØÖ··ÖÇå0¿ªÊ¼»¹ÊÇ1¿ªÊ¼.
+/*	å°†ä¸€äº›å¿…è¦çš„æ•°æ®ä» stMeter_Run_data ç»“æ„ä½“ä¸­å¤åˆ¶(æ˜ å°„)åˆ°
+	reg_tbl å¯„å­˜å™¨è¡¨ä»¥ä¾¿è¯»å–è¿™äº›æ•°æ®
+	è¾“å…¥:	struct stMeter_Run_data meter[MAXMETER]
+	è¾“å‡º:	u16  reg[0xFFFF+1] å¯„å­˜å™¨è¡¨
+	TODO:	ç›®å‰ä¸»ç«™è¯·æ±‚ä¸€æ¬¡,å¤åˆ¶å…¨éƒ¨å˜é‡åˆ°å¯„å­˜å™¨æ•°ç»„,ç¨æ˜¾æµªè´¹.
+		åº”æ”¹è¿›æ•ˆç‡,ä»…å¤åˆ¶éœ€è¦çš„ç»“æ„ä½“å˜é‡.
+	NOTE:	modbuså¯„å­˜å™¨èµ·å§‹åœ°å€åˆ†æ¸…0å¼€å§‹è¿˜æ˜¯1å¼€å§‹.
 */
 int Cmbap::map_dat2reg(u16  reg[0xFFFF+1]
 		       , stMeter_Run_data meter[]
@@ -739,7 +739,7 @@ int Cmbap::map_dat2reg(u16  reg[0xFFFF+1]
 	int base;
 	int bit;
 #define ERR_DAT_NUM (-1) //if dat is not sample , return a -1 to modbus regs
-	u8 sub=0;// base(±íĞòºÅ)+sub(ÏîĞòºÅ)=µØÖ·
+	u8 sub=0;// base(è¡¨åºå·)+sub(é¡¹åºå·)=åœ°å€
 	//printf("%d\n",sysConfig->meter_num);
 #if 0
 	int t=0;//meter test id
@@ -752,11 +752,11 @@ int Cmbap::map_dat2reg(u16  reg[0xFFFF+1]
 	printf("meter[%d].Flag_LastTOU_Collect==%X\n",t,meter[t].Flag_LastTOU_Collect);
 #endif
 	for (i=0; i<sysConfig->meter_num; i++) {
-//for (i=0;i<MAXMETER;i++) {//(¸´ÖÆËùÓĞ±äÁ¿)
-		base=(i<<8);	//¸ß×Ö½Ú±íÊ¾±íºÅ,·Ö±æ¸÷¸ö²»Í¬µÄ±í,·¶Î§[0,MAXMETER]
-		sub=0;				//×ÓÓò,Ä³¸ö±íµÄÌØ¶¨²ÎÊı
+//for (i=0;i<MAXMETER;i++) {//(å¤åˆ¶æ‰€æœ‰å˜é‡)
+		base=(i<<8);	//é«˜å­—èŠ‚è¡¨ç¤ºè¡¨å·,åˆ†è¾¨å„ä¸ªä¸åŒçš„è¡¨,èŒƒå›´[0,MAXMETER]
+		sub=0;				//å­åŸŸ,æŸä¸ªè¡¨çš„ç‰¹å®šå‚æ•°
 #if DEBUG_REG_MAP
-		//·ÖÊ±µçÁ¿ °üº¬×ÜµçÁ¿ 4*5=20
+		//åˆ†æ—¶ç”µé‡ åŒ…å«æ€»ç”µé‡ 4*5=20
 		printf("m_iTOU start at line: %d sub=0x%X(%d)\n",__LINE__,sub,sub);
 #endif
 		for(j=0; j<TOUNUM; j++) {
@@ -782,7 +782,7 @@ int Cmbap::map_dat2reg(u16  reg[0xFFFF+1]
 			//printf("meter[%d].m_iTOU[%d]=%f sub=%d \n",i,j,meter[i].m_iTOU[j],sub);
 		}
 #if DEBUG_REG_MAP
-		//ÏóÏŞÎŞ¹¦µçÄÜ 4*5=20
+		//è±¡é™æ— åŠŸç”µèƒ½ 4*5=20
 		printf("m_iQR start at line: %d sub=0x%X(%d)\n",__LINE__,sub,sub);
 #endif
 		for(j=0; j<TOUNUM; j++) { //
@@ -801,7 +801,7 @@ int Cmbap::map_dat2reg(u16  reg[0xFFFF+1]
 			//printf("meter[%d].m_iQR[%d]=%f sub=%d \n",i,j,meter[i].m_iQR[j],sub);
 		}
 #if DEBUG_REG_MAP
-		//×î´óĞèÁ¿ 2*2*5=20
+		//æœ€å¤§éœ€é‡ 2*2*5=20
 		printf("m_iMaxN start at line: %d sub=0x%X(%d)\n",__LINE__,sub,sub);
 #endif
 		//TODO: adjust all dat legel. now,just ONLY adjust TI and phane less power!!!
@@ -814,10 +814,10 @@ int Cmbap::map_dat2reg(u16  reg[0xFFFF+1]
 			//printf("meter[%d].m_iMaxN[%d]=%f sub=%d \n",i,j,meter[i].m_iMaxN[j],sub);
 		}
 #if DEBUG_REG_MAP
-		//Ë²Ê±Á¿ 3+3
+		//ç¬æ—¶é‡ 3+3
 		printf("Voltage start at line: %d sub=0x%X(%d)\n",__LINE__,sub,sub);
 #endif
-		for(j=0; j<PHASENUM; j++) { //µçÑ¹abc
+		for(j=0; j<PHASENUM; j++) { //ç”µå‹abc
 			dat2mbreg_lo16bit(&reg[base+sub],meter[i].m_wU[j]);
 			sub++;
 			dat2mbreg_hi16bit(&reg[base+sub],meter[i].m_wU[j]);
@@ -827,7 +827,7 @@ int Cmbap::map_dat2reg(u16  reg[0xFFFF+1]
 #if DEBUG_REG_MAP
 		printf("Current start at line: %d sub=0x%X(%d)\n",__LINE__,sub,sub);
 #endif
-		for(j=0; j<PHASENUM; j++) { //µçÁ÷abc
+		for(j=0; j<PHASENUM; j++) { //ç”µæµabc
 			dat2mbreg_lo16bit(&reg[base+sub],meter[i].m_wI[j]);
 			sub++;
 			dat2mbreg_hi16bit(&reg[base+sub],meter[i].m_wI[j]);
@@ -835,10 +835,10 @@ int Cmbap::map_dat2reg(u16  reg[0xFFFF+1]
 			//printf("meter[%d].m_wI[%d]=%f sub=%d \n",i,j,meter[i].m_wI[j],sub);
 		}
 #if DEBUG_REG_MAP
-		//ÓĞ¹¦ /ÎŞ¹¦ /¹¦ÂÊÒòÊı|×Ü,a,b,c
+		//æœ‰åŠŸ /æ— åŠŸ /åŠŸç‡å› æ•°|æ€»,a,b,c
 		printf("m_iP start at line: %d sub=0x%X(%d)\n",__LINE__,sub,sub);
 #endif
-		for(j=0; j<PQCNUM; j++) { //ÓĞ¹¦
+		for(j=0; j<PQCNUM; j++) { //æœ‰åŠŸ
 			dat2mbreg_lo16bit(&reg[base+sub],meter[i].m_iP[j]);
 			sub++;
 			dat2mbreg_hi16bit(&reg[base+sub],meter[i].m_iP[j]);
@@ -848,7 +848,7 @@ int Cmbap::map_dat2reg(u16  reg[0xFFFF+1]
 #if DEBUG_REG_MAP
 		printf("m_wQ start at line: %d sub=0x%X(%d)\n",__LINE__,sub,sub);
 #endif
-		for(j=0; j<PQCNUM; j++) { //ÎŞ¹¦
+		for(j=0; j<PQCNUM; j++) { //æ— åŠŸ
 			dat2mbreg_lo16bit(&reg[base+sub],meter[i].m_wQ[j]);
 			sub++;
 			dat2mbreg_hi16bit(&reg[base+sub],meter[i].m_wQ[j]);
@@ -858,7 +858,7 @@ int Cmbap::map_dat2reg(u16  reg[0xFFFF+1]
 #if DEBUG_REG_MAP
 		printf("m_wPF start at line: %d sub=0x%X(%d)\n",__LINE__,sub,sub);
 #endif
-		for(j=0; j<PQCNUM; j++) { //¹¦ÂÊÒòÊı
+		for(j=0; j<PQCNUM; j++) { //åŠŸç‡å› æ•°
 			dat2mbreg_lo16bit(&reg[base+sub],meter[i].m_wPF[j]);
 			sub++;
 			dat2mbreg_hi16bit(&reg[base+sub],meter[i].m_wPF[j]);
@@ -868,14 +868,14 @@ int Cmbap::map_dat2reg(u16  reg[0xFFFF+1]
 #if DEBUG_REG_MAP
 		printf("m_wPF start at line: %d sub=0x%X(%d)\n",__LINE__,sub,sub);
 #endif
-		for(j=0; j<4; j++) { //±£Áô4¸ö32Î»¼Ä´æÆ÷,±¸ÓÃ
+		for(j=0; j<4; j++) { //ä¿ç•™4ä¸ª32ä½å¯„å­˜å™¨,å¤‡ç”¨
 			dat2mbreg_lo16bit(&reg[base+sub],(int)0xFFFFFFFF);
 			sub++;
 			dat2mbreg_hi16bit(&reg[base+sub],(int)0xFFFFFFFF);
 			sub++;
 			//printf("0xFFFFFFFF=%x %x \n",reg[base+sub-1],reg[base+sub]);
 		}
-		//¶ÏÏà¼ÇÂ¼ 4(abc×Ü)*2(´ÎÊı,Ê±¼ä)
+		//æ–­ç›¸è®°å½• 4(abcæ€»)*2(æ¬¡æ•°,æ—¶é—´)
 #if DEBUG_REG_MAP
 		printf("m_wPBCountstart at  line: %d sub=0x%X(%d)\n",__LINE__,sub,sub);
 #endif
@@ -886,7 +886,7 @@ int Cmbap::map_dat2reg(u16  reg[0xFFFF+1]
 			sub++;
 			//printf("meter[%d].m_wPBCount[%d]=%d sub=%d \n",i,j,meter[i].m_wPBCount[j],sub);
 		}
-		//¶ÏÏà×ÜÊ±¼ä
+		//æ–­ç›¸æ€»æ—¶é—´
 #if DEBUG_REG_MAP
 		printf("m_iPBTotalTime start at line: %d sub=0x%X(%d)\n",__LINE__,sub,sub);
 #endif
@@ -897,7 +897,7 @@ int Cmbap::map_dat2reg(u16  reg[0xFFFF+1]
 			sub++;
 			//printf("meter[%d].m_iPBTotalTime[%d]=%d\n",i,j,meter[i].m_iPBTotalTime[j]);
 		}
-		/*	//ÆäËû:
+		/*	//å…¶ä»–:
 		dat2mbreg(&reg_tbl[base+sub++],meter[i].m_cF);//short
 		dat2mbreg(&reg_tbl[base+sub++],meter[i].m_Ue);
 		dat2mbreg(&reg_tbl[base+sub++],meter[i].m_Ie);
@@ -934,8 +934,8 @@ int Cmbap::map_dat2reg(u16  reg[0xFFFF+1]
 #endif
 	return 0;
 }
-/*¶ÔÓ¦ 0x10²Ù×÷,°ÑÖµ´Ó¼Ä´æÆ÷¸³Öµ¸ø½á¹¹Ìå±äÁ¿
-	Ô¤ÁôµÄ±¸ÓÃ(À©Õ¹)¹¦ÄÜ
+/*å¯¹åº” 0x10æ“ä½œ,æŠŠå€¼ä»å¯„å­˜å™¨èµ‹å€¼ç»™ç»“æ„ä½“å˜é‡
+	é¢„ç•™çš„å¤‡ç”¨(æ‰©å±•)åŠŸèƒ½
 */
 int Cmbap::map_reg2dat(u16  reg_tbl[0xFFFF+1]
 		       ,stMeter_Run_data meter[]
@@ -952,9 +952,9 @@ int Cmbap::map_reg2dat(u16  reg_tbl[0xFFFF+1]
 	meter[0].Flag_Meter=0x87654321;
 	printf("start_addr=0x%X meter_no=0x%X sub_id=0x%X end_addr=0x%X meter_no_e=%X"
 	       ,start_addr,meter_no,sub_id,end_addr,meter_no_e);
-	i=meter_no; //Ñ­»· ±íºÅ
+	i=meter_no; //å¾ªç¯ è¡¨å·
 	addr=(i<<8);
-	switch(sub_id) { //Ã¿¸ö±íµÄ ×Ó¼Ä´æÆ÷µØÖ·
+	switch(sub_id) { //æ¯ä¸ªè¡¨çš„ å­å¯„å­˜å™¨åœ°å€
 begin:
 	case 0x00:
 		dat2mbreg_lo16bit(&reg_tbl[addr+0x00],meter[i].Flag_Meter,1);

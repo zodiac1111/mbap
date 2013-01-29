@@ -1,26 +1,26 @@
-/* define some mbap struct
+/** define some mbap struct
 */
 #ifndef MBAP_STRUCT_H
 #define MBAP_STRUCT_H
-//×Ô¶¨ÒåÊı¾İ
+//è‡ªå®šä¹‰æ•°æ®
 typedef unsigned char u8;
 typedef unsigned short u16;
 typedef unsigned char rsp_dat;
 
 //******* modbus function code R=Read W=Write ***********
-//(µ±Ç°½öÊµÏÖ0x03)
-#define MB_FUN_R_COILS		0x01	//¶ÁÈ¡ÀëÉ¢ÏßÈ¦ 1bit
+//(å½“å‰ä»…å®ç°0x03)
+#define MB_FUN_R_COILS		0x01	//è¯»å–ç¦»æ•£çº¿åœˆ 1bit
 #define MB_FUN_R_DISCRETE_INPUT 0x02	// 1 bit
-#define MB_FUN_R_HOLD_REG	0x03	//¶Á¶à¸ö16Î»±£³Ö¼Ä´æÆ÷
-#define MB_FUN_R_INPUT_REG	0x04	//¶ÁÈ¡¶à¸ö16Î»ÊäÈë¼Ä´æÆ÷
+#define MB_FUN_R_HOLD_REG	0x03	//è¯»å¤šä¸ª16ä½ä¿æŒå¯„å­˜å™¨
+#define MB_FUN_R_INPUT_REG	0x04	//è¯»å–å¤šä¸ª16ä½è¾“å…¥å¯„å­˜å™¨
 #define MB_FUN_W_SINGLE_COIL	0x05
-#define MB_FUN_W_SINGLE_REG	0x06	//Ğ´µ¥¸ö¼Ä´æÆ÷ 16 bit
+#define MB_FUN_W_SINGLE_REG	0x06	//å†™å•ä¸ªå¯„å­˜å™¨ 16 bit
 #define MB_FUN_R_EXCEPTION_STATUS 0x07	//(Serial Line only)
 #define MB_FUN_Diagnostics	0x08	//(Serial Line only)
 #define MB_FUN_GETCOMM_EVENT_CNT 0x0B //Get Comm Event Counter (Serial Line only)
 #define MB_FUN_GETCOMM_EVENT_LOG 0x0C //Get Comm Event Log (Serial Line only)
-#define MB_FUN_W_MULTI_COILS	0x0f	//Ğ´¶àÏßÈ¦
-#define MB_FUN_W_MULTI_REG	0x10	//Ğ´¶à¸ö16Î»¼Ä´æÆ÷
+#define MB_FUN_W_MULTI_COILS	0x0f	//å†™å¤šçº¿åœˆ
+#define MB_FUN_W_MULTI_REG	0x10	//å†™å¤šä¸ª16ä½å¯„å­˜å™¨
 //(0x11) Report Slave ID (Serial Line only)
 //(0x14) Read File Record
 //(0x15) Write File Record
@@ -31,89 +31,89 @@ typedef unsigned char rsp_dat;
 //(0x2B/0x0D) CANopen General Reference Request and Response PDU
 //(0x2B/0x0E) Read Device Identification
 
-//******************* Òì³£Öµ 1×Ö½Ú *******************
+//******************* å¼‚å¸¸å€¼ 1å­—èŠ‚ *******************
 //#define ERR_ILLEGAL_FUN			0x01
 const unsigned char ERR_ILLEGAL_FUN		=0x01;
 const unsigned char ERR_ILLEGAL_DATA_ADDRESS	=0x02;
 const unsigned char ERR_ILLEGAL_DATA_VALUE	=0x03;
 const unsigned char ERR_SLAVE_DEVICE_FAILURE	=0x04;
 const unsigned char ERR_SLAVE_DEVICE_BUSY	=0x06;
-//Òì³£ÖµÃèÊöÎÄ±¾:
+//å¼‚å¸¸å€¼æè¿°æ–‡æœ¬:
 #define ERR_ILLEGAL_FUN_MSG		"Illegal Function Code"
 #define ERR_ILLEGAL_DATA_ADDRESS_MSG	"Illegal Date Address"
 #define ERR_ILLEGAL_DATA_VALUE_MSG	"Illegal Date Valve(s)"
 #define ERR_SLAVE_DEVICE_FAILURE_MSG	"Slave Device Failure"
 #define ERR_SLAVE_DEVICE_BUSY_MSG	"Slave Device Busy"
-//ÆäËû
-#define BYTE_PER_REG 2 //modbusÃ¿¸ö¼Ä´æÆ÷Õ¼2×Ö½Ú,¼´¼Ä´æÆ÷Îª16Î».
+//å…¶ä»–
+#define BYTE_PER_REG 2 //modbusæ¯ä¸ªå¯„å­˜å™¨å 2å­—èŠ‚,å³å¯„å­˜å™¨ä¸º16ä½.
 
-/*modbusÓ¦ÓÃ³ÌĞòÍ· MBAP headerÍ·½á¹¹Ìå
+/*modbusåº”ç”¨ç¨‹åºå¤´ MBAP headerå¤´ç»“æ„ä½“
 MODBUS Application Protocol */
 struct mbap_head {
-	u8 TransID_hi;//´«ÊäÊ¶±ğÂë 2×Ö½Ú
+	u8 TransID_hi;//ä¼ è¾“è¯†åˆ«ç  2å­—èŠ‚
 	u8 TransID_lo;
-	u8 protocolhead_hi;//Ğ­ÒéÊ¶±ğÂë 2×Ö½Ú modbus=0
+	u8 protocolhead_hi;//åè®®è¯†åˆ«ç  2å­—èŠ‚ modbus=0
 	u8 protocolhead_lo;
-	u8 len_hi;//¸úËæ³¤¶È 2×Ö½Ú
+	u8 len_hi;//è·Ÿéšé•¿åº¦ 2å­—èŠ‚
 	u8 len_lo;
-	u8 unitindet;//´ÓÕ¾/×°ÖÃÊ¶±ğÂë 1×Ö½Ú
-} __attribute__ ((packed));	//¹² 2+2+2+1= 7×Ö½Ú
+	u8 unitindet;//ä»ç«™/è£…ç½®è¯†åˆ«ç  1å­—èŠ‚
+} __attribute__ ((packed));	//å…± 2+2+2+1= 7å­—èŠ‚
 
-//modbusÇëÇóĞ­ÒéÊı¾İµ¥Ôª MODBUS Request PDU( ¶Á¶à¸ö±£³Ö¼Ä´æÆ÷ ¹¦ÄÜ)
+//modbusè¯·æ±‚åè®®æ•°æ®å•å…ƒ MODBUS Request PDU( è¯»å¤šä¸ªä¿æŒå¯„å­˜å™¨ åŠŸèƒ½)
 struct mb_read_req_pdu {
-	u8 func_code; //¹¦ÄÜÂë 1×Ö½Ú
-	u8 start_addr_hi; //¼Ä´æÆ÷¿ªÊ¼µØÖ· 2×Ö½Ú
+	u8 func_code; //åŠŸèƒ½ç  1å­—èŠ‚
+	u8 start_addr_hi; //å¯„å­˜å™¨å¼€å§‹åœ°å€ 2å­—èŠ‚
 	u8 start_addr_lo;
-	u8 reg_quantity_hi; //¼Ä´æÆ÷ÊıÄ¿ 2×Ö½Ú
+	u8 reg_quantity_hi; //å¯„å­˜å™¨æ•°ç›® 2å­—èŠ‚
 	u8 reg_quantity_lo;
-} __attribute__ ((packed));	//¹²1+2+2=5×Ö½Ú
-//(Õı³£)·µ»Øµ¥Ôª MODBUS Response PDU( ¶Á¶à¸ö±£³Ö¼Ä´æÆ÷ ¹¦ÄÜ)
+} __attribute__ ((packed));	//å…±1+2+2=5å­—èŠ‚
+//(æ­£å¸¸)è¿”å›å•å…ƒ MODBUS Response PDU( è¯»å¤šä¸ªä¿æŒå¯„å­˜å™¨ åŠŸèƒ½)
 struct mb_read_rsp_pdu {
-	u8 func_code;//¹¦ÄÜÂë 1×Ö½Ú
-	u8 byte_count;//·µ»Ø×Ö½ÚÊıN 1×Ö½Ú
-	//u8 data * n //n=N or N+1(²»ÄÜ±»8Õû³ıÊ±,¶ÔÓÚÏßÈ¦²Ù×÷)
-} __attribute__((packed)); //¹²1+1+N×Ö½Ú
+	u8 func_code;//åŠŸèƒ½ç  1å­—èŠ‚
+	u8 byte_count;//è¿”å›å­—èŠ‚æ•°N 1å­—èŠ‚
+	//u8 data * n //n=N or N+1(ä¸èƒ½è¢«8æ•´é™¤æ—¶,å¯¹äºçº¿åœˆæ“ä½œ)
+} __attribute__((packed)); //å…±1+1+Nå­—èŠ‚
 
-//modbusÇëÇóĞ­ÒéÊı¾İµ¥Ôª( Ğ´¶à¸ö±£³Ö¼Ä´æÆ÷ ¹¦ÄÜ)
+//modbusè¯·æ±‚åè®®æ•°æ®å•å…ƒ( å†™å¤šä¸ªä¿æŒå¯„å­˜å™¨ åŠŸèƒ½)
 struct mb_write_req_pdu {
-	u8 func_code; //¹¦ÄÜÂë 1×Ö½Ú
-	u8 start_addr_hi; //¼Ä´æÆ÷¿ªÊ¼µØÖ· 2×Ö½Ú
+	u8 func_code; //åŠŸèƒ½ç  1å­—èŠ‚
+	u8 start_addr_hi; //å¯„å­˜å™¨å¼€å§‹åœ°å€ 2å­—èŠ‚
 	u8 start_addr_lo;
-	u8 reg_quantity_hi; //¼Ä´æÆ÷ÊıÄ¿ 2×Ö½Ú
+	u8 reg_quantity_hi; //å¯„å­˜å™¨æ•°ç›® 2å­—èŠ‚
 	u8 reg_quantity_lo;
-	u8 byte_count;//Ğ´×Ö½ÚÊı
-	/* N*2byte NÎª¼Ä´æÆ÷¸öÊı */
-} __attribute__((packed));	//¹²1+2+2+1+N*2=6+N*2×Ö½Ú
-//ÏìÓ¦µ¥Ôª ( Ğ´¶à¸ö±£³Ö¼Ä´æÆ÷ ¹¦ÄÜ)
+	u8 byte_count;//å†™å­—èŠ‚æ•°
+	/* N*2byte Nä¸ºå¯„å­˜å™¨ä¸ªæ•° */
+} __attribute__((packed));	//å…±1+2+2+1+N*2=6+N*2å­—èŠ‚
+//å“åº”å•å…ƒ ( å†™å¤šä¸ªä¿æŒå¯„å­˜å™¨ åŠŸèƒ½)
 struct mb_write_rsp_pdu {
-	u8 func_code;//¹¦ÄÜÂë 1×Ö½Ú
-	u8 start_addr_hi; //¼Ä´æÆ÷¿ªÊ¼µØÖ· 2×Ö½Ú
+	u8 func_code;//åŠŸèƒ½ç  1å­—èŠ‚
+	u8 start_addr_hi; //å¯„å­˜å™¨å¼€å§‹åœ°å€ 2å­—èŠ‚
 	u8 start_addr_lo;
-	u8 reg_quantity_hi; //¼Ä´æÆ÷ÊıÄ¿ 2×Ö½Ú
+	u8 reg_quantity_hi; //å¯„å­˜å™¨æ•°ç›® 2å­—èŠ‚
 	u8 reg_quantity_lo;
-} __attribute__ ((packed)); //¹²1+2+2×Ö½Ú
+} __attribute__ ((packed)); //å…±1+2+2å­—èŠ‚
 
-//Òì³£ ·µ»Øµ¥Ôª MODBUS Exception Response PDU ËùÓĞ¹¦ÄÜ¸ñÊ½¶¼Ò»Ñù
+//å¼‚å¸¸ è¿”å›å•å…ƒ MODBUS Exception Response PDU æ‰€æœ‰åŠŸèƒ½æ ¼å¼éƒ½ä¸€æ ·
 struct mb_excep_rsp_pdu {
-	u8 exception_func_code; //Òì³£¹¦ÄÜÂë 1×Ö½Ú
-	u8 exception_code;//Òì³£Öµ 1×Ö½Ú
-} __attribute__ ((packed)); //¹²1+1=2×Ö½Ú
+	u8 exception_func_code; //å¼‚å¸¸åŠŸèƒ½ç  1å­—èŠ‚
+	u8 exception_code;//å¼‚å¸¸å€¼ 1å­—èŠ‚
+} __attribute__ ((packed)); //å…±1+1=2å­—èŠ‚
 
 /*
-The equivalent request to this Modbus RTU example (Ò»°ãmodbus/RTU±¨ÎÄ)
+The equivalent request to this Modbus RTU example (ä¸€èˆ¬modbus/RTUæŠ¥æ–‡)
 		 11 03 006B 0003 7687
-in Modbus TCP is:(modbus/tcp ±¨ÎÄ)
+in Modbus TCP is:(modbus/tcp æŠ¥æ–‡)
   0001 0000 0006 11 03 006B 0003
-ÆäÖĞ:
-0001: Transaction Identifier (´«ÊäÊ¶±ğÂë)
-0000: Protocol Identifier(Ğ­ÒéÊ¶±ğÂë,modbus=0x0000)
-0006: Message Length (6 bytes to follow) (ºóĞø×Ö½ÚÊı)
-11: The Unit Identifier  (17 = 11 hex) (´ÓÕ¾/Éè±¸Ê¶±ğÂë)
-03: The Function Code (read Analog Output Holding Registers)(¹¦ÄÜÂë,¶Á)
+å…¶ä¸­:
+0001: Transaction Identifier (ä¼ è¾“è¯†åˆ«ç )
+0000: Protocol Identifier(åè®®è¯†åˆ«ç ,modbus=0x0000)
+0006: Message Length (6 bytes to follow) (åç»­å­—èŠ‚æ•°)
+11: The Unit Identifier  (17 = 11 hex) (ä»ç«™/è®¾å¤‡è¯†åˆ«ç )
+03: The Function Code (read Analog Output Holding Registers)(åŠŸèƒ½ç ,è¯»)
 006B: The Data Address of the first register requested.
-		(40108-40001 = 107 =6B hex)(ÆôÊ¾¼Ä´æÆ÷µØÖ·)
+		(40108-40001 = 107 =6B hex)(å¯ç¤ºå¯„å­˜å™¨åœ°å€)
 0003: The total number of registers requested.
-		(read 3 registers 40108 to 40110)(×Ü¹²¶ÁÈ¡¼Ä´æÆ÷ÊıÁ¿,3¸ö)
+		(read 3 registers 40108 to 40110)(æ€»å…±è¯»å–å¯„å­˜å™¨æ•°é‡,3ä¸ª)
 
 */
 
