@@ -127,16 +127,16 @@ private://各种打印:	mbap头, 请求pdu
 private://实用函数 将各种类型转换成为 16位modbus寄存器类型
 	void dat2mbreg_hi16bit(u16 reg[1],unsigned int &dat32, int dir) const;
 	void dat2mbreg_lo16bit(u16 reg[1],unsigned int &dat32, int dir) const;
-	void dat2mbreg_hi16bit(u16 reg[1],const signed int  dat32) const;
-	void dat2mbreg_lo16bit(u16 reg[1],const signed int  dat32) const;
-	void dat2mbreg_hi16bit(u16 reg[1],const float float32) const;
-	void dat2mbreg_lo16bit(u16 reg[1],const float float32) const;
-	void dat2mbreg(u16 reg[1],const short dat16) const;
-	void dat2mbreg(u16 reg[1],const char high_byte,const char low_byte) const;
+	void d2r_hi16bit(u16 reg[1],const signed int  dat32) const;
+	void d2r_lo16bit(u16 reg[1],const signed int  dat32) const;
+	void d2r_hi16bit(u16 reg[1],const float float32) const;
+	void d2r_lo16bit(u16 reg[1],const float float32) const;
+	void d2r(u16 reg[1],const short dat16) const;
+	void d2r(u16 reg[1],const char high_byte,const char low_byte) const;
 private://reg map
 	int map_dat2reg(u16 reg[], stMeter_Run_data meter[]
 			, const mb_read_req_pdu request_pdu)const;
-	int map_reg2dat(u16 reg_tbl[]
+	int r2d(u16 reg_tbl[]
 			,stMeter_Run_data meter[]
 			,const struct mb_write_req_pdu request_pdu) const;
 };

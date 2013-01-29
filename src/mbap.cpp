@@ -23,6 +23,8 @@ extern "C" CProtocol *CreateCProto_Cmbap(void)
 
 Cmbap::Cmbap()
 {
+	this->unit_id=0;
+	this->sysConfig=NULL;
 	//printf(MB_PERFIX"construct class\n");
 }
 
@@ -233,7 +235,7 @@ int Cmbap::ReciProc(void)
 			                (ppdu_dat[i*2+0]<<8)+ppdu_dat[i*2+1]);
 			printf("regtable=%X ;", reg_table[start_addr+i]);
 		}
-		map_reg2dat(reg_table, m_meterData, write_req_pdu);
+		r2d(reg_table, m_meterData, write_req_pdu);
 		//构造报文
 		if (make_msg(this->req_mbap, this->write_req_pdu
 		                , this->rsp_mbap, this->write_rsp_pdu)!=0) {
@@ -346,10 +348,10 @@ int Cmbap::send_response_excep(const struct mbap_head mbap,
 }
 /*	构建响应 0x06 的返回的报文
  输入:	request_mbap (const)	请求的 mbap
- request_pdu  (const)	请求的 pdu
+ 	 request_pdu  (const)	请求的 pdu
  输出:	respond_mbap(&mbap_head)响应的 mbap
- respond_pdu(&mbap_head)	响应的 (正常)pdu
- pdu_dat (u8[256])	返回报文数据 pdu-dat
+ 	 respond_pdu(&mbap_head)	响应的 (正常)pdu
+ 	 pdu_dat (u8[256])	返回报文数据 pdu-dat
  return:	0-成功 other-失败
  */
 int Cmbap::make_msg(const struct mbap_head request_mbap
@@ -557,7 +559,7 @@ bool Cmbap::verify_req_pdu(const struct mb_write_req_pdu request_pdu,
 	return true;
 }
 
-/*	输入验证:验证 寄存器数量 是否符合相应的功能码
+/**	输入验证:验证 寄存器数量 是否符合相应的功能码
  输入:	req_pdu
  输出:	reg_quantity寄存器数量
  */
@@ -571,7 +573,7 @@ bool Cmbap::verify_reg_quantity(const struct mb_read_req_pdu request_pdu
 	}
 	return true;
 }
-/* 验证寄存器数量
+/** 验证寄存器数量
  */
 bool Cmbap::verify_reg_quantity(const struct mb_write_req_pdu request_pdu
         , int &reg_quantity) const
@@ -587,7 +589,7 @@ bool Cmbap::verify_reg_quantity(const struct mb_write_req_pdu request_pdu
 	}
 	return true;
 }
-/*	输入验证 :验证 寄存器 地址 是否符合相应的功能码
+/**	输入验证 :验证 寄存器 地址 是否符合相应的功能码
  in:	request_pdu
  out:	start_addr 开始地址
  end_addr 结束地址
@@ -648,33 +650,33 @@ inline void Cmbap::dat2mbreg_lo16bit(u16 reg[1], unsigned int &dat32, int dir =
 	}
 }
 //将32位 in t型数据 转化成为 2个 modbus寄存器(16位)的形式
-inline void Cmbap::dat2mbreg_hi16bit(u16 reg[1], const signed int dat32) const
+inline void Cmbap::d2r_hi16bit(u16 reg[1], const signed int dat32) const
         {
 	reg[0] = u16((dat32&0xFFFF0000)>>16);     //高2字节在后
 }
 //将32位 in t型数据 转化成为 2个 modbus寄存器(16位)的形式
-inline void Cmbap::dat2mbreg_lo16bit(u16 reg[1], const signed int dat32) const
+inline void Cmbap::d2r_lo16bit(u16 reg[1], const signed int dat32) const
         {
 	reg[0] = u16((dat32&0x0000FFFF)>>0);     //低2字节在前(这个顺序是modbus决定的)
 }
 //将32位 float 型数据 转化保存在 2个 modbus 寄存器(16位)中(高16位)
-inline void Cmbap::dat2mbreg_hi16bit(u16 reg[1], const float float32) const
+inline void Cmbap::d2r_hi16bit(u16 reg[1], const float float32) const
         {
 	//IEEE 754 float 格式,在线转换 http://babbage.cs.qc.cuny.edu/IEEE-754/
 	reg[0] = u16((*(int *) &float32&0xFFFF0000)>>16);
 }
 //将32位 float 型数据 转化保存在 2个 modbus 寄存器(16位)中(低16位)
-inline void Cmbap::dat2mbreg_lo16bit(u16 reg[1], const float float32) const
+inline void Cmbap::d2r_lo16bit(u16 reg[1], const float float32) const
         {
 	reg[0] = u16((*(int *) &float32&0x0000FFFF)>>0);
 }
 //将16位 short 型数据 转化成为 1个 modbus寄存器(16位)的形式
-inline void Cmbap::dat2mbreg(u16 reg[1], const short dat16) const
+inline void Cmbap::d2r(u16 reg[1], const short dat16) const
         {
 	reg[0] = dat16;
 }
 //将 2 个 8位 char 数据 合成成为 1个 modbus寄存器(16位)的形式
-inline void Cmbap::dat2mbreg(u16 reg[1]
+inline void Cmbap::d2r(u16 reg[1]
         , const char high_byte, const char low_byte) const
         {
 	reg[0] = u16((high_byte<<8)+low_byte);
@@ -765,7 +767,7 @@ inline void Cmbap::print_pdu_dat(const u8 pdu_dat[], u8 bytecount) const
 	fflush(stdout);
 }
 
-/*	将一些必要的数据从 stMeter_Run_data 结构体中复制(映射)到
+/**	将一些必要的数据从 stMeter_Run_data 结构体中复制(映射)到
  reg_tbl 寄存器表以便读取这些数据
  输入:	struct stMeter_Run_data meter[MAXMETER]
  输出:	u16  reg[0xFFFF+1] 寄存器表
@@ -812,20 +814,20 @@ int Cmbap::map_dat2reg(u16 reg[0xFFFF+1]
 			printf("bit[%d]=%x\n",j,bit);
 #endif
 			if (bit!=1) {     // cheak if dat is legel . per bit mean one of zong/jian/fen/ping/gu
-				dat2mbreg_lo16bit(
+				d2r_lo16bit(
 				                &reg[base+sub],
 				                (float) ERR_DAT_NUM);
 				sub++;
-				dat2mbreg_hi16bit(
+				d2r_hi16bit(
 				                &reg[base+sub],
 				                (float) ERR_DAT_NUM);
 				sub++;
 			} else {
-				dat2mbreg_lo16bit(
+				d2r_lo16bit(
 				                &reg[base+sub],
 				                meter[i].m_iTOU[j]);
 				sub++;
-				dat2mbreg_hi16bit(
+				d2r_hi16bit(
 				                &reg[base+sub],
 				                meter[i].m_iTOU[j]);
 				sub++;
@@ -839,20 +841,20 @@ int Cmbap::map_dat2reg(u16 reg[0xFFFF+1]
 		for (j = 0; j<TOUNUM; j++) {     //
 			bit = (meter[i].Flag_QR&(0x1<<j))>>j;
 			if (bit!=1) {
-				dat2mbreg_lo16bit(
+				d2r_lo16bit(
 				                &reg[base+sub],
 				                (float) ERR_DAT_NUM);
 				sub++;
-				dat2mbreg_hi16bit(
+				d2r_hi16bit(
 				                &reg[base+sub],
 				                (float) ERR_DAT_NUM);
 				sub++;
 			} else {
-				dat2mbreg_lo16bit(
+				d2r_lo16bit(
 				                &reg[base+sub],
 				                meter[i].m_iQR[j]);
 				sub++;
-				dat2mbreg_hi16bit(
+				d2r_hi16bit(
 				                &reg[base+sub],
 				                meter[i].m_iQR[j]);
 				sub++;
@@ -866,9 +868,9 @@ int Cmbap::map_dat2reg(u16 reg[0xFFFF+1]
 		//TODO: adjust all dat legel. now,just ONLY adjust TI and phane less power!!!
 		for (j = 0; j<TOUNUM; j++) {     //
 			//meter[i].m_iMaxN[j]=123.4F;
-			dat2mbreg_lo16bit(&reg[base+sub], meter[i].m_iMaxN[j]);
+			d2r_lo16bit(&reg[base+sub], meter[i].m_iMaxN[j]);
 			sub++;
-			dat2mbreg_hi16bit(&reg[base+sub], meter[i].m_iMaxN[j]);
+			d2r_hi16bit(&reg[base+sub], meter[i].m_iMaxN[j]);
 			sub++;
 			//printf("meter[%d].m_iMaxN[%d]=%f sub=%d \n",i,j,meter[i].m_iMaxN[j],sub);
 		}
@@ -877,9 +879,9 @@ int Cmbap::map_dat2reg(u16 reg[0xFFFF+1]
 		printf("Voltage start at line: %d sub=0x%X(%d)\n",__LINE__,sub,sub);
 #endif
 		for (j = 0; j<PHASENUM; j++) {     //电压abc
-			dat2mbreg_lo16bit(&reg[base+sub], meter[i].m_wU[j]);
+			d2r_lo16bit(&reg[base+sub], meter[i].m_wU[j]);
 			sub++;
-			dat2mbreg_hi16bit(&reg[base+sub], meter[i].m_wU[j]);
+			d2r_hi16bit(&reg[base+sub], meter[i].m_wU[j]);
 			sub++;
 			//printf("meter[%d].m_wU[%d]=%f sub=%d \n",i,j,meter[i].m_wU[j],sub);
 		}
@@ -887,9 +889,9 @@ int Cmbap::map_dat2reg(u16 reg[0xFFFF+1]
 		printf("Current start at line: %d sub=0x%X(%d)\n",__LINE__,sub,sub);
 #endif
 		for (j = 0; j<PHASENUM; j++) {     //电流abc
-			dat2mbreg_lo16bit(&reg[base+sub], meter[i].m_wI[j]);
+			d2r_lo16bit(&reg[base+sub], meter[i].m_wI[j]);
 			sub++;
-			dat2mbreg_hi16bit(&reg[base+sub], meter[i].m_wI[j]);
+			d2r_hi16bit(&reg[base+sub], meter[i].m_wI[j]);
 			sub++;
 			//printf("meter[%d].m_wI[%d]=%f sub=%d \n",i,j,meter[i].m_wI[j],sub);
 		}
@@ -898,9 +900,9 @@ int Cmbap::map_dat2reg(u16 reg[0xFFFF+1]
 		printf("m_iP start at line: %d sub=0x%X(%d)\n",__LINE__,sub,sub);
 #endif
 		for (j = 0; j<PQCNUM; j++) {     //有功
-			dat2mbreg_lo16bit(&reg[base+sub], meter[i].m_iP[j]);
+			d2r_lo16bit(&reg[base+sub], meter[i].m_iP[j]);
 			sub++;
-			dat2mbreg_hi16bit(&reg[base+sub], meter[i].m_iP[j]);
+			d2r_hi16bit(&reg[base+sub], meter[i].m_iP[j]);
 			sub++;
 			//printf("meter[%d].m_iP[%d]=%f sub=%d \n",i,j,meter[i].m_iP[j],sub);
 		}
@@ -908,9 +910,9 @@ int Cmbap::map_dat2reg(u16 reg[0xFFFF+1]
 		printf("m_wQ start at line: %d sub=0x%X(%d)\n",__LINE__,sub,sub);
 #endif
 		for (j = 0; j<PQCNUM; j++) {     //无功
-			dat2mbreg_lo16bit(&reg[base+sub], meter[i].m_wQ[j]);
+			d2r_lo16bit(&reg[base+sub], meter[i].m_wQ[j]);
 			sub++;
-			dat2mbreg_hi16bit(&reg[base+sub], meter[i].m_wQ[j]);
+			d2r_hi16bit(&reg[base+sub], meter[i].m_wQ[j]);
 			sub++;
 			//printf("meter[%d].m_wQ[%d]=%f\n",i,j,meter[i].m_wQ[j]);
 		}
@@ -918,9 +920,9 @@ int Cmbap::map_dat2reg(u16 reg[0xFFFF+1]
 		printf("m_wPF start at line: %d sub=0x%X(%d)\n",__LINE__,sub,sub);
 #endif
 		for (j = 0; j<PQCNUM; j++) {     //功率因数
-			dat2mbreg_lo16bit(&reg[base+sub], meter[i].m_wPF[j]);
+			d2r_lo16bit(&reg[base+sub], meter[i].m_wPF[j]);
 			sub++;
-			dat2mbreg_hi16bit(&reg[base+sub], meter[i].m_wPF[j]);
+			d2r_hi16bit(&reg[base+sub], meter[i].m_wPF[j]);
 			sub++;
 			//printf("meter[%d].m_wPF[%d]=%f\n",i,j,meter[i].m_wPF[j]);
 		}
@@ -928,9 +930,9 @@ int Cmbap::map_dat2reg(u16 reg[0xFFFF+1]
 		printf("m_wPF start at line: %d sub=0x%X(%d)\n",__LINE__,sub,sub);
 #endif
 		for (j = 0; j<4; j++) {     //保留4个32位寄存器,备用
-			dat2mbreg_lo16bit(&reg[base+sub], (int) 0xFFFFFFFF);
+			d2r_lo16bit(&reg[base+sub], (int) 0xFFFFFFFF);
 			sub++;
-			dat2mbreg_hi16bit(&reg[base+sub], (int) 0xFFFFFFFF);
+			d2r_hi16bit(&reg[base+sub], (int) 0xFFFFFFFF);
 			sub++;
 			//printf("0xFFFFFFFF=%x %x \n",reg[base+sub-1],reg[base+sub]);
 		}
@@ -1001,10 +1003,15 @@ int Cmbap::map_dat2reg(u16 reg[0xFFFF+1]
 #endif
 	return 0;
 }
-/*对应 0x10操作,把值从寄存器赋值给结构体变量
- 预留的备用(扩展)功能
+/**
+ * reg to data.
+ * 对应 0x10操作,把值从寄存器赋值给结构体变量.预留的备用(扩展)功能
+ * @param reg_tbl
+ * @param meter
+ * @param request_pdu
+ * @return
  */
-int Cmbap::map_reg2dat(u16 reg_tbl[0xFFFF+1]
+int Cmbap::r2d(u16 reg_tbl[0xFFFF+1]
         , stMeter_Run_data meter[]
         , const struct mb_write_req_pdu request_pdu) const
         {
