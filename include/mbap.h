@@ -55,7 +55,6 @@ public:
 	void SendProc(void);
 	int ReciProc(void);
 	void m_BroadcastTime(void);
-	/************************** 成员变量 ****************************/
 private:
 	u8 unit_id;//modbus从站(终端)ID
 	struct stSyspara *sysConfig;//系统参数
@@ -71,7 +70,6 @@ private:
 	struct mb_excep_rsp_pdu excep_rsp_pdu;//异常响应体-头
 	//所有寄存器表 16位每个 共0xFFFF+1个
 	u16 reg_table[0xFFFF+1];
-	/************************** 成员函数 ****************************/
 private://输入验证
 	bool verify_msg(unsigned short len) const;
 	bool verify_mbap(const mbap_head request_mbap) const;
@@ -88,31 +86,32 @@ private://输入验证
 				 ,int &reg_quantity)const;
 	bool verify_reg_quantity(const struct mb_write_req_pdu request_pdu
 				 ,int &reg_quantity)const;
-	//构建返回报文 0x06
+	///构建返回报文 0x06
 	int make_msg( const struct mbap_head request_mbap
 		      ,const struct mb_read_req_pdu read_req_pdu
 		      ,struct mbap_head &rsp_mbap
 		      ,struct mb_read_rsp_pdu &respond_pdu
 		      ,u8 pdu_dat[])const;
-	//构建返回报文 0x10
+	///构建返回报文 0x10
 	int make_msg( const struct mbap_head request_mbap
 		      ,const struct mb_write_req_pdu read_req_pdu
 		      ,struct mbap_head &rsp_mbap
 		      ,struct mb_write_rsp_pdu  &respond_pdu)const;
-	//构造异常返回报文
+	///构造异常返回报文
 	int make_msg_excep(const mbap_head request_mbap,
 			   mbap_head &respond_mbap,
 			   mb_excep_rsp_pdu &excep_pdu
 			   , u8 func_code, u8 exception_code)const;
-	//发送正常回复,0x06 0x10
+	///发送正常回复 0x06
 	int send_response(const mbap_head mbap
 			  ,const mb_read_rsp_pdu pdu
 			  ,const rsp_dat pdu_dat[],
 			  struct TransReceiveBuf &transBuf) const;
+	///发送正常回复 0x10
 	int send_response(const struct mbap_head mbap
 			  ,const mb_write_rsp_pdu pdu
 			  ,TransReceiveBuf &transBuf)const;
-	//发送异常回复
+	///发送异常回复
 	int send_response_excep(const struct mbap_head mbap,
 				const struct mb_excep_rsp_pdu pdu,
 				struct TransReceiveBuf &transBuf )const ;
