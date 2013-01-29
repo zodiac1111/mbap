@@ -56,7 +56,7 @@ public:
 	int ReciProc(void);
 	void m_BroadcastTime(void);
 private:
-	u8 unit_id;//modbus从站(终端)ID
+	unsigned short unit_id;//modbus从站(终端)ID
 	struct stSyspara *sysConfig;//系统参数
 	//请求
 	struct mbap_head req_mbap;//请求头

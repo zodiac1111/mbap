@@ -43,16 +43,12 @@ int Cmbap::Init(struct stPortConfig *tmp_portcfg)
 		printf(MB_PERFIX_ERR"METER_CShareMemory metershm class\n");
 		return -1;
 	}
-	printf(MB_PERFIX"meter max quantity=%d\n", sysConfig->meter_num);
-	//slave addr / unit Identifier in mbap /终端地址 in 终端 (2byte)
-	//现在并没有强制判断这个终端地址
-	unit_id = u8(tmp_portcfg->m_ertuaddr>>8);     //high byte of  RTU addr mast be 0
-	printf(MB_PERFIX"RTU addr high byte:%d \n", unit_id);
-	if (unit_id!=0) {
-		return -1;
-	}
-	unit_id = (unsigned char) tmp_portcfg->m_ertuaddr;     //low byte of RTU mast be 0xFF
-	printf(MB_PERFIX"RTU addr low byte:%d \n", unit_id);
+	unit_id =  tmp_portcfg->m_ertuaddr;     //low byte of RTU mast be 0xFF
+#if SHOW_INIT_INFO
+	printf(MB_PERFIX"最大表计数量（max meter number）=%d\n", sysConfig->meter_num);
+#endif
+#if SHOW_INIT_INFO
+	printf(MB_PERFIX"RTU addr is:%d \n", unit_id);
 	std::cout<<"Flag_TOU="<<m_meterData[0].Flag_TOU<<"\n"
 	                <<"m_meterData[0].m_iTOU[0]="<<m_meterData[0].m_iTOU[0]
 	                <<"\n"
@@ -60,8 +56,13 @@ int Cmbap::Init(struct stPortConfig *tmp_portcfg)
 	                <<"\n"
 	                <<"m_meterData[0].Flag_Meter="
 	                <<m_meterData[0].Flag_Meter<<"\n"
-
 	                <<std::endl;
+
+	if(unit_id>255){
+		printf(MB_PERFIX_ERR"rtu addr is big than 255\n");
+		unit_id=1;
+	}
+#endif
 	BUILD_INFO
 	return 0;
 }
@@ -115,7 +116,8 @@ int Cmbap::ReciProc(void)
 	//接收完成,进行报文处理:检验,(执行)返回
 	//复制出MBAP头
 	memcpy(&req_mbap, &readbuf[0], sizeof(req_mbap));
-	if (unit_id!=req_mbap.unitindet) {     //忽略不是发往本站的报文
+	///忽略不是发往本站的报文
+	if (unit_id!=(unsigned short)req_mbap.unitindet) {
 		return 0;
 	}
 	/** 验证 mbap unit Identifier 字段,必须为0xFF,否则忽略
@@ -316,14 +318,6 @@ int Cmbap::send_response(const struct mbap_head mbap
 	this->print_rsp_pdu(pdu);
 	printf("\n");
 #endif
-	//	printf("%02X %02X %02X %02X %02X %02X %02X cnt=%d \n",
-	//	       transBuf.m_transceiveBuf[0],
-	//	       transBuf.m_transceiveBuf[1],
-	//	       transBuf.m_transceiveBuf[2],
-	//	       transBuf.m_transceiveBuf[3],
-	//	       transBuf.m_transceiveBuf[4],
-	//	       transBuf.m_transceiveBuf[5],
-	//	       transBuf.m_transceiveBuf[6],transBuf.m_transCount);
 	return 0;
 }
 //发送异常返回报文
@@ -683,7 +677,7 @@ inline void Cmbap::d2r(u16 reg[1]
 }
 
 /************************ 一系列打印函数 *******************************/
-//打印 mbap 头信息 请求和响应 格式相同
+///打印 mbap 头信息
 void Cmbap::print_mbap(const struct mbap_head mbap) const
         {
 	printf("{%02X %02X|%02X %02X|%02X %02X|%02X}"
@@ -698,7 +692,7 @@ void Cmbap::print_mbap(const struct mbap_head mbap) const
 	                mbap.unitindet);     //单元
 	fflush(stdout);
 }
-//打印请求pdu
+///打印请求pdu
 inline void Cmbap::print_req_pdu(const struct mb_read_req_pdu request_pdu) const
         {
 	printf("(%02X|%02X %02X|%02X %02X)"
@@ -709,7 +703,7 @@ inline void Cmbap::print_req_pdu(const struct mb_read_req_pdu request_pdu) const
 	                , request_pdu.reg_quantity_lo);
 	fflush(stdout);
 }
-//打印请求pdu
+///打印请求pdu
 inline void Cmbap::print_req_pdu(
         const struct mb_write_req_pdu request_pdu) const
         {
@@ -722,7 +716,7 @@ inline void Cmbap::print_req_pdu(
 	                , request_pdu.byte_count);
 	fflush(stdout);
 }
-//打印异常响应pdu
+///打印异常响应pdu
 inline void Cmbap::print_rsp_pdu(
         const struct mb_excep_rsp_pdu excep_respond_pdu) const
         {
@@ -731,7 +725,7 @@ inline void Cmbap::print_rsp_pdu(
 	                , excep_respond_pdu.exception_code);
 	fflush(stdout);
 }
-//打印正常响应pdu 0x06 x010
+///打印正常响应pdu
 inline void Cmbap::print_rsp_pdu(const struct mb_read_rsp_pdu respond_pdu)
         const
         {
@@ -740,6 +734,7 @@ inline void Cmbap::print_rsp_pdu(const struct mb_read_rsp_pdu respond_pdu)
 	                , respond_pdu.byte_count);
 	fflush(stdout);
 }
+///打印正常响应pdu
 inline void Cmbap::print_rsp_pdu(const struct mb_write_rsp_pdu respond_pdu)
         const
         {
@@ -751,7 +746,7 @@ inline void Cmbap::print_rsp_pdu(const struct mb_write_rsp_pdu respond_pdu)
 	                , respond_pdu.reg_quantity_lo);
 	fflush(stdout);
 }
-/*打印响应pdu数据体
+/**打印响应pdu数据体
  In pdu_dat
  In bytecount
  */
@@ -771,7 +766,7 @@ inline void Cmbap::print_pdu_dat(const u8 pdu_dat[], u8 bytecount) const
  reg_tbl 寄存器表以便读取这些数据
  输入:	struct stMeter_Run_data meter[MAXMETER]
  输出:	u16  reg[0xFFFF+1] 寄存器表
- TODO:	目前主站请求一次,复制全部变量到寄存器数组,稍显浪费.
+ @todo	目前主站请求一次,复制全部变量到寄存器数组,稍显浪费.
  应改进效率,仅复制需要的结构体变量.
  NOTE:	modbus寄存器起始地址分清0开始还是1开始.
  */
