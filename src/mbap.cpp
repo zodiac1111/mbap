@@ -4,6 +4,7 @@
 	当前仅实现了:0x06(读多个保持16位寄存器)功能码.
 	所有文档在本文件底部列出.
 */
+
 #include <string.h>
 #include <time.h>
 #include <iostream>
