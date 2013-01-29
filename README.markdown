@@ -1,4 +1,4 @@
-# ModBus Application Protocol 实现#
+# ModBus Application Protocol 实现 #
 仅部分实现了协议所规定的0x03功能码,
 仅实现保持寄存器的读操作,其他例如写输入寄存器,线圈等均没有实现.
 
