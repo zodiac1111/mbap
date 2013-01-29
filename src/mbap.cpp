@@ -115,10 +115,10 @@ int Cmbap::ReciProc(void)
 	if (unit_id!=req_mbap.unitindet) {     //忽略不是发往本站的报文
 		return 0;
 	}
-	/* 验证 mbap unit Identifier 字段,必须为0xFF,否则忽略
+	/** 验证 mbap unit Identifier 字段,必须为0xFF,否则忽略
 	 不是发给modbus/TCP终端的报文,为发给同区域其他modbus(非TCP)从站的报文
 	 在直连modbusTCP设备的网络中 0做为单元标识也是可以接受的. */
-	if (req_mbap.unitindet!=0xff&&req_mbap.unitindet!=0x00) {
+	if (req_mbap.unitindet!=0xff && req_mbap.unitindet!=0x00) {
 		return 0;
 	}
 	//验证 mbap头
