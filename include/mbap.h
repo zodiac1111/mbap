@@ -1,14 +1,21 @@
-/**	@file mbap.h -> libmbap.so
+/**	@file mbap.h
 	modbus的寄存器为16位,且按先高字节 后低字节传输
 	对于多于16位的数据类型如 int float,后2字节在前.
 	注意数据格式,寄存器格式,传输顺序,
-缩略语:
-	ADU Application Data Unit
-	IP Internet Protocol
-	MB MODBUS
-	MBAP MODBUS Application Protocol
-	PDU Protocol Data Unit
-	TCP Transport Control Protocol
+#缩略语:
+	* ADU Application Data Unit
+	* IP Internet Protocol
+	* MB MODBUS
+	* MBAP MODBUS Application Protocol
+	* PDU Protocol Data Unit
+	* TCP Transport Control Protocol
+#参考文档:
+	1. refer: modbus/TCP http://www.simplymodbus.ca/TCP.htm
+	2. http://www.electroind.com/pdf/Modbus_messaging_on_TCPIP_implementation_guide_V11.pdf
+	3. http://www.modbus.org/docs/Modbus_Application_Protocol_V1_1b.pdf (官网)
+	4. http://www.modbus.org/docs/Modbus_Messaging_Implementation_Guide_V1_0b.pdf
+	5. http://www.modbus.org/specs.php (说明书)
+	6. 从Modbus到透明就绪 华? 编著 第8章
 */
 #ifndef __MBAP_H__
 #define __MBAP_H__
@@ -134,14 +141,4 @@ private://reg map
 			,stMeter_Run_data meter[]
 			,const struct mb_write_req_pdu request_pdu) const;
 };
-
-/* 参考文档:
-	1. refer: modbus/TCP http://www.simplymodbus.ca/TCP.htm
-	2. http://www.electroind.com/pdf/Modbus_messaging_on_TCPIP_implementation_guide_V11.pdf
-	3. http://www.modbus.org/docs/Modbus_Application_Protocol_V1_1b.pdf (官网)
-	4. http://www.modbus.org/docs/Modbus_Messaging_Implementation_Guide_V1_0b.pdf
-	5. http://www.modbus.org/specs.php (说明书)
-	6. 从Modbus到透明就绪 华? 编著 第8章
-*/
-
 #endif //__MBAP_H__
