@@ -1,10 +1,11 @@
-/*
-	file: mbap.cpp - ModBus Application Protocol
+/**
+	@file  mbap.cpp - ModBus Application Protocol
 	库: libmbap.so
 	当前仅实现了:0x06(读多个保持16位寄存器)功能码.
 	所有文档在本文件底部列出.
 */
 #include <string.h>
+#include <stdio.h>
 #include <stdio.h>
 #include <time.h>
 #include <iostream>
@@ -15,7 +16,6 @@
 #include "log.h"
 #include "mbap.h"
 #include "metershm.h"
-/***************************** 接口 ***********************/
 extern "C" CProtocol *CreateCProto_Cmbap(void)
 {
 	//static_assert(sizeof(int) == 4, "Integer sizes expected to be 4");
@@ -31,7 +31,7 @@ Cmbap::~Cmbap()
 {
 	//printf(MB_PERFIX"disconstruct class\n");
 }
-/* 实例化时被主程序调用一次
+/** 实例化时被主程序调用一次
   in: tmp_portcfg 端口信息结构体,终端地址.
 */
 int Cmbap::Init(struct stPortConfig *tmp_portcfg)
