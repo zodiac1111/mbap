@@ -24,26 +24,29 @@
 #include "mbap_struct.h"
 //显示mbap库消息的前缀.方便在显示中查看该库相关的信息.
 //用于一般信息 如接收数据
-#define MB_PERFIX "[libmbap]"
+#define PERFIX "[libmbap]"
 //用于提示 调试或建议信息
-#define MB_PERFIX_WARN "[libmbap]Warning:"
+#define PERFIX_WARN "[libmbap]Warn:"
 //用于提示 错误信息
-#define MB_PERFIX_ERR "[libmbap]ERR:"
+#define PERFIX_ERR "[libmbap]Err:"
 //libmbap 定义的错误消息
 //extern stMeter_Run_data m_meterData[MAXMETER];
-// 调试/打印 选项:
-#define SHOW_INIT_INFO 1 //打印初始化信息
-#define SHOW_RECI_MSG 1 //在终端显示接收到 消息(报文)
-#define SHOW_SEND_MSG 1 //在终端显示 发送的 消息(报文)
-#define SHOW_SEND_EXCEP_MSG 1 //在终端显示 发送的 异常 消息(报文)
-//#define READ_DATE_PAND_DBG //显示填充到寄存器的值
-//#define DBG_send_response
-#define DEBUG_REG_MAP 0
+// 调试/打印 debug print 选项:
+#define DP_INIT_INFO 1 //打印初始化信息
+#define DP_RECI_MSG 1 //在终端显示接收到 消息(报文)
+#define DP_SEND_MSG 1 //在终端显示 发送的 消息(报文)
+#define DP_SEND_EXCEP_MSG 1 //在终端显示 发送的 异常 消息(报文)
+#define DP_READ_DATE_PAND 0//显示填充到寄存器的值
+#define DP_send_response 0 //打印发送的调试信息
+#define DP_REG_MAP 0
 /// 打印编译构建的日期和时间，类似：Dec  3 2012 09:59:57
 #define BUILD_INFO {					\
-		printf(MB_PERFIX"Build:%s %s\n",	\
+		printf(PERFIX"Build:%s %s\n",	\
 			__DATE__, __TIME__);		\
 	}
+#define MAJOR 1 ///<库版本号:主版本号
+#define MINOR 1 ///<库版本号:次版本号
+#define PATCHLEVEL 1 ///<库版本号:修订号
 extern "C" CProtocol *CreateCProto_Cmbap(void);//mbap规约
 
 class Cmbap :public CProtocol
@@ -86,13 +89,13 @@ private://输入验证
 				 ,int &reg_quantity)const;
 	bool verify_reg_quantity(const struct mb_write_req_pdu request_pdu
 				 ,int &reg_quantity)const;
-	///构建返回报文 0x06
+	///构建返回报文 读多个保持寄存器
 	int make_msg( const struct mbap_head request_mbap
 		      ,const struct mb_read_req_pdu read_req_pdu
 		      ,struct mbap_head &rsp_mbap
 		      ,struct mb_read_rsp_pdu &respond_pdu
 		      ,u8 pdu_dat[])const;
-	///构建返回报文 0x10
+	///构建返回报文 写多个保持寄存器
 	int make_msg( const struct mbap_head request_mbap
 		      ,const struct mb_write_req_pdu read_req_pdu
 		      ,struct mbap_head &rsp_mbap
@@ -102,12 +105,12 @@ private://输入验证
 			   mbap_head &respond_mbap,
 			   mb_excep_rsp_pdu &excep_pdu
 			   , u8 func_code, u8 exception_code)const;
-	///发送正常回复 0x06
+	///发送正常回复 读多个保持寄存器
 	int send_response(const mbap_head mbap
 			  ,const mb_read_rsp_pdu pdu
 			  ,const rsp_dat pdu_dat[],
 			  struct TransReceiveBuf &transBuf) const;
-	///发送正常回复 0x10
+	///发送正常回复 写多个保持寄存器
 	int send_response(const struct mbap_head mbap
 			  ,const mb_write_rsp_pdu pdu
 			  ,TransReceiveBuf &transBuf)const;
@@ -116,14 +119,14 @@ private://输入验证
 				const struct mb_excep_rsp_pdu pdu,
 				struct TransReceiveBuf &transBuf )const ;
 private://各种打印:	mbap头, 请求pdu
-	void print_mbap( const mbap_head mbap)const;// 0x06 adn 0x10
+	void print_mbap( const mbap_head mbap)const;// 0x03 adn 0x10
 	void print_req_pdu(const mb_read_req_pdu request_pdu)const;//read请求
 	void print_req_pdu(const mb_write_req_pdu request_pdu)const;//write x010
 	//		返回响应1 / 响应2
-	void print_rsp_pdu(const mb_read_rsp_pdu respond_pdu)const;//0x06
+	void print_rsp_pdu(const mb_read_rsp_pdu respond_pdu)const;//0x03
 	void print_rsp_pdu(const mb_write_rsp_pdu respond_pdu)const;//0x10
 	void print_rsp_pdu(const mb_excep_rsp_pdu excep_respond_pdu)const;//异常
-	void print_pdu_dat(const u8 pdu_dat[],u8 bytecount)const;//0x06/0x10数据体
+	void print_pdu_dat(const u8 pdu_dat[],u8 bytecount)const;//0x03/0x10数据体
 private://实用函数 将各种类型转换成为 16位modbus寄存器类型
 	void dat2mbreg_hi16bit(u16 reg[1],unsigned int &dat32, int dir) const;
 	void dat2mbreg_lo16bit(u16 reg[1],unsigned int &dat32, int dir) const;

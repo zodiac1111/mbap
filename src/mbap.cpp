@@ -1,7 +1,7 @@
 /**
  @file  mbap.cpp - ModBus Application Protocol
  库: libmbap.so
- 当前仅实现了:0x06(读多个保持16位寄存器)功能码.
+ 当前仅实现了:读多个保持16位寄存器.功能码3x03.
  所有文档在本文件底部列出.
  */
 
@@ -25,12 +25,10 @@ Cmbap::Cmbap()
 {
 	this->unit_id=0;
 	this->sysConfig=NULL;
-	//printf(MB_PERFIX"construct class\n");
 }
 
 Cmbap::~Cmbap()
 {
-	//printf(MB_PERFIX"disconstruct class\n");
 }
 /** 实例化时被主程序调用一次
  in: tmp_portcfg 端口信息结构体,终端地址.
@@ -40,15 +38,15 @@ int Cmbap::Init(struct stPortConfig *tmp_portcfg)
 	class METER_CShareMemory metershm;     //从共享内存中得到表数量(耦合)
 	this->sysConfig = metershm.GetSysConfig();
 	if (sysConfig==NULL) {
-		printf(MB_PERFIX_ERR"METER_CShareMemory metershm class\n");
+		printf(PERFIX_ERR"METER_CShareMemory metershm class\n");
 		return -1;
 	}
 	unit_id =  tmp_portcfg->m_ertuaddr;     //low byte of RTU mast be 0xFF
-#if SHOW_INIT_INFO
-	printf(MB_PERFIX"最大表计数量（max meter number）=%d\n", sysConfig->meter_num);
+#if DP_INIT_INFO
+	printf(PERFIX"最大表计数量（max meter number）=%d\n", sysConfig->meter_num);
 #endif
-#if SHOW_INIT_INFO
-	printf(MB_PERFIX"RTU addr is:%d \n", unit_id);
+#if DP_INIT_INFO
+	printf(PERFIX"RTU addr is:%d \n", unit_id);
 	std::cout<<"Flag_TOU="<<m_meterData[0].Flag_TOU<<"\n"
 	                <<"m_meterData[0].m_iTOU[0]="<<m_meterData[0].m_iTOU[0]
 	                <<"\n"
@@ -59,11 +57,13 @@ int Cmbap::Init(struct stPortConfig *tmp_portcfg)
 	                <<std::endl;
 
 	if(unit_id>255){
-		printf(MB_PERFIX_ERR"rtu addr is big than 255\n");
+		printf(PERFIX_ERR"rtu addr is big than 255\n");
 		unit_id=1;
 	}
-#endif
+	printf(PERFIX"Version: %d.%d.%d,", MAJOR, MINOR, PATCHLEVEL);
+	//打印编译时间
 	BUILD_INFO
+#endif
 	return 0;
 }
 
@@ -86,13 +86,13 @@ void Cmbap::SendProc(void)
  该模式是传统modbus/串口和modbus/tcp都有的.
  接收->分析->执行->返回(发送给主站) 均由本函数实现
  分析/验证:	由 verify_* 函数完成
- 执行:		map_dat2reg(0x06) / map_reg2dat(0x10,未完成)
+ 执行:		map_dat2reg(读多个保持寄存器) / map_reg2dat(写多个保持寄存器,未完成)
  构造报文:	make_msg[_excep]
  返回:		response_*
  */
 int Cmbap::ReciProc(void)
 {
-	//printf(MB_PERFIX" into ReciProc\n");
+	//printf(PERFIX" into ReciProc\n");
 	unsigned short len = 0;
 	///TCP MODBUS ADU = 253 bytes+MBAP (7 bytes) = 260 bytes
 	u8 readbuf[253+7];
@@ -109,7 +109,7 @@ int Cmbap::ReciProc(void)
 	copyfrom_buf(readbuf, &m_recvBuf, len);
 	//验证1 报文验证
 	if (verify_msg(len)==false) {
-		printf(MB_PERFIX_ERR"reci illegal message\n");
+		printf(PERFIX_ERR"reci illegal message\n");
 		return 0;
 	}
 	syn_loopbuff_ptr(&m_recvBuf);
@@ -128,11 +128,11 @@ int Cmbap::ReciProc(void)
 	}
 	//验证 mbap头
 	if (this->verify_mbap(req_mbap)==false) {
-		printf(MB_PERFIX_ERR"verify_mbap\n");
+		printf(PERFIX_ERR"verify_mbap\n");
 		return 0;
 	}
-#if SHOW_RECI_MSG
-	printf(MB_PERFIX"<<< Reci form master:");
+#if DP_RECI_MSG
+	printf(PERFIX"<<< Reci form master:");
 	print_mbap(req_mbap);
 	fflush(stdout);     //stdout为行缓存设备,强制刷新
 #endif
@@ -140,7 +140,7 @@ int Cmbap::ReciProc(void)
 	u8 funcode = readbuf[sizeof(req_mbap)];
 	if (verify_funcode(funcode)==false) {
 		printf("(%02X|NaN)\n", funcode);
-		printf(MB_PERFIX_ERR ERR_ILLEGAL_FUN_MSG);
+		printf(PERFIX_ERR ERR_ILLEGAL_FUN_MSG);
 		printf(" function code: 0x%02X.\n", funcode);
 		make_msg_excep(
 		                req_mbap,
@@ -152,11 +152,11 @@ int Cmbap::ReciProc(void)
 	}
 	//根据功能码 判断 复制到不同的 请求pdu.
 	switch (funcode) {
-	/********************** 0x06 ******************************/
+	/********************** 读多个保持寄存器 ******************************/
 	case MB_FUN_R_HOLD_REG:     //读多个保持寄存器
 		memcpy(&read_req_pdu, &readbuf[0]+sizeof(req_mbap)
 		                , sizeof(read_req_pdu));
-#if SHOW_RECI_MSG
+#if DP_RECI_MSG
 		print_req_pdu(read_req_pdu);
 		printf("\n");
 #endif
@@ -190,7 +190,7 @@ int Cmbap::ReciProc(void)
 		if (make_msg(this->req_mbap, this->read_req_pdu
 		                , this->rsp_mbap, this->read_rsp_pdu
 		                , this->ppdu_dat)!=0) {
-			printf(MB_PERFIX_ERR"make msg\n");
+			printf(PERFIX_ERR"make msg\n");
 			return 0;
 		}
 		//发送
@@ -202,7 +202,7 @@ int Cmbap::ReciProc(void)
 	case MB_FUN_W_MULTI_REG:
 		memcpy(&write_req_pdu, &readbuf[0]+sizeof(req_mbap)     //pdu
 		                , sizeof(write_req_pdu));
-#if SHOW_RECI_MSG
+#if DP_RECI_MSG
 		print_req_pdu(write_req_pdu);
 #endif
 		verify_req = verify_req_pdu(write_req_pdu, errcode);
@@ -223,7 +223,7 @@ int Cmbap::ReciProc(void)
 		                &readbuf[0]+sizeof(req_mbap)
 		                                +sizeof(write_req_pdu),
 		                write_req_pdu.byte_count);
-#if SHOW_RECI_MSG
+#if DP_RECI_MSG
 		print_pdu_dat(ppdu_dat, write_req_pdu.byte_count);
 		printf("\n");
 #endif
@@ -241,7 +241,7 @@ int Cmbap::ReciProc(void)
 		//构造报文
 		if (make_msg(this->req_mbap, this->write_req_pdu
 		                , this->rsp_mbap, this->write_rsp_pdu)!=0) {
-			printf(MB_PERFIX_ERR"make msg\n");
+			printf(PERFIX_ERR"make msg\n");
 			return 0;
 		}
 		this->send_response(rsp_mbap, write_rsp_pdu, m_transBuf);
@@ -250,11 +250,11 @@ int Cmbap::ReciProc(void)
 		return 0;
 		break;
 	}
-	//printf(MB_PERFIX"out of ReciProc\n");
+	//printf(PERFIX"out of ReciProc\n");
 	return 0;
 }
 
-/*	发送报文(功能码 0x06) 所有结构都是对于 0x06功能的
+/*	发送报文(功能码 0x03) 所有结构都是对于 0x03功能的
  输入: response_mbap  response_pdu  pdu_dat[256]
  输出: transBuf(struct)	发送的报文.
  */
@@ -278,18 +278,18 @@ int Cmbap::send_response(const struct mbap_head mbap
 	transBuf.m_transCount = sizeof(mbap)     //mbap
 	+sizeof(pdu)     //pdu
 	                +(pdu.byte_count);     //pdu-dat
-#if SHOW_SEND_MSG
-	printf(MB_PERFIX">>> Send  to  master:");
+#if DP_SEND_MSG
+	printf(PERFIX">>> Send  to  master:");
 	this->print_mbap(mbap);
 	this->print_rsp_pdu(pdu);
 	this->print_pdu_dat(pdu_dat, pdu.byte_count);
 	printf("\n");
 #endif
-#ifdef DBG_send_response
+#if DP_send_response
 	int i;
 	printf("trancount=%d\n",transBuf.m_transCount);
-	printf("sizeof=%d,%d\n",sizeof(response_mbap),sizeof(response_pdu));
-	for(i=0; i<response_pdu.byte_count; i++) {
+	printf("sizeof=%d,%d\n",sizeof(mbap),sizeof(pdu));
+	for(i=0; i<pdu.byte_count; i++) {
 		printf("%02X ",pdu_dat[i]);
 	}
 	printf("\n");
@@ -305,15 +305,13 @@ int Cmbap::send_response(const struct mbap_head mbap
         , struct TransReceiveBuf &transBuf) const
         {
 	memcpy(&transBuf.m_transceiveBuf[0]	//mbap
-	                ,
-	                &mbap,
-	                sizeof(mbap));
+	                ,&mbap,sizeof(mbap));
 	memcpy(&transBuf.m_transceiveBuf[0]+sizeof(mbap)     //pdu
 	                , &pdu, sizeof(pdu));
 	transBuf.m_transCount = sizeof(mbap)	//count
 	+sizeof(pdu);
-#if SHOW_SEND_MSG
-	printf(MB_PERFIX">>> Send  to  master:");
+#if DP_SEND_MSG
+	printf(PERFIX">>> Send  to  master:");
 	this->print_mbap(mbap);
 	this->print_rsp_pdu(pdu);
 	printf("\n");
@@ -332,15 +330,15 @@ int Cmbap::send_response_excep(const struct mbap_head mbap,
 	memcpy(&transBuf.m_transceiveBuf[0]+sizeof(mbap)     //excep-pdu
 	                , &pdu, sizeof(struct mb_excep_rsp_pdu));
 	transBuf.m_transCount = sizeof(mbap)+sizeof(pdu);     //count
-#if SHOW_SEND_EXCEP_MSG
-	printf(MB_PERFIX">>> Send  to  master:");
+#if DP_SEND_EXCEP_MSG
+	printf(PERFIX">>> Send  to  master:");
 	this->print_mbap(mbap);
 	this->print_rsp_pdu(pdu);
 	printf("\n");
 #endif
 	return 0;
 }
-/*	构建响应 0x06 的返回的报文
+/*	构建响应 读多个保持寄存器 的返回的报文
  输入:	request_mbap (const)	请求的 mbap
  	 request_pdu  (const)	请求的 pdu
  输出:	respond_mbap(&mbap_head)响应的 mbap
@@ -379,7 +377,7 @@ int Cmbap::make_msg(const struct mbap_head request_mbap
 		//modbus16位寄存器传输顺序:高字节在前,低字节在后
 		pdu_dat[i*2+0] = u8((reg_table[start_addr+i]&0xFF00)>>8);
 		pdu_dat[i*2+1] = u8((reg_table[start_addr+i]&0x00FF));
-#ifdef READ_DATE_PAND_DBG
+#if DP_READ_DATE_PAND
 		printf("%04X = %02X ,%02X\n"
 				,reg_table[start_addr+i],pdu_dat[i*2+0],pdu_dat[i*2+1]);
 #endif
@@ -435,7 +433,7 @@ int Cmbap::make_msg_excep(const struct mbap_head request_mbap,
 bool Cmbap::verify_msg(unsigned short len) const
         {
 	if (len<(sizeof(struct mbap_head)+1 /*funcode*/)) {
-		printf(MB_PERFIX_ERR"mbap msg len:%d is less than 7.\n", len);
+		printf(PERFIX_ERR"mbap msg len:%d is less than 7.\n", len);
 		return false;
 	}
 	return true;
@@ -451,14 +449,14 @@ bool Cmbap::verify_mbap(const struct mbap_head request_mbap) const
 	//2. 协议: 0x0000 为 modbus
 	if (!(request_mbap.protocolhead_hi==0x00
 	                &&request_mbap.protocolhead_lo==0x00)) {
-		printf(MB_PERFIX_ERR"mbap protocol not modbus/tcp protocol.\n");
+		printf(PERFIX_ERR"mbap protocol not modbus/tcp protocol.\n");
 		return false;
 	}
 	//3. 长度:
 	// verify 5th byte is zero (upper length byte = zero as length MUST be
 	// less than 256) 验证长度
 	if (request_mbap.len_hi!=0x00) {
-		printf(MB_PERFIX_ERR"mbap the length of msg is too long.\n");
+		printf(PERFIX_ERR"mbap the length of msg is too long.\n");
 		return false;
 	}
 	/*4. 从站编号 [2,247(?)]//对于TCP/IP,使用IP地址寻址,这个标识符是无用的
@@ -480,7 +478,7 @@ bool Cmbap::verify_funcode(u8 funcode) const
         {
 	switch (funcode) {
 	case MB_FUN_R_COILS:
-		printf(MB_PERFIX_WARN
+		printf(PERFIX_WARN
 		"Function code: 0x01 read coils maybe on need \n");
 		return false;
 		break;
@@ -510,13 +508,13 @@ bool Cmbap::verify_req_pdu(const struct mb_read_req_pdu request_pdu,
 	int start_addr;
 	int end_addr;
 	if (verify_reg_quantity(request_pdu, reg_quantity)==false) {
-		printf("\n"MB_PERFIX_ERR ERR_ILLEGAL_DATA_VALUE_MSG);
+		printf("\n"PERFIX_ERR ERR_ILLEGAL_DATA_VALUE_MSG);
 		printf(" reg_quantity=0x%04X.\n", reg_quantity);
 		errcode = ERR_ILLEGAL_DATA_VALUE;
 		return false;
 	}
 	if (verify_reg_addr(request_pdu, start_addr, end_addr)==false) {
-		printf("\n"MB_PERFIX_ERR ERR_ILLEGAL_DATA_ADDRESS_MSG);
+		printf("\n"PERFIX_ERR ERR_ILLEGAL_DATA_ADDRESS_MSG);
 		printf(
 		                " start_addr=0x%X end_addr=0x%X.\n",
 		                start_addr,
@@ -536,13 +534,13 @@ bool Cmbap::verify_req_pdu(const struct mb_write_req_pdu request_pdu,
 	int end_addr;
 	errcode = 0;
 	if (verify_reg_quantity(request_pdu, reg_quantity)==false) {
-		printf("\n"MB_PERFIX_ERR ERR_ILLEGAL_DATA_VALUE_MSG);
+		printf("\n"PERFIX_ERR ERR_ILLEGAL_DATA_VALUE_MSG);
 		printf(" reg_quantity=0x%04X.\n", reg_quantity);
 		errcode = ERR_ILLEGAL_DATA_VALUE;
 		return false;
 	}
 	if (verify_reg_addr(request_pdu, start_addr, end_addr)==false) {
-		printf("\n"MB_PERFIX_ERR ERR_ILLEGAL_DATA_ADDRESS_MSG);
+		printf("\n"PERFIX_ERR ERR_ILLEGAL_DATA_ADDRESS_MSG);
 		printf(
 		                " start_addr=0x%X end_addr=0x%X.\n",
 		                start_addr,
@@ -795,17 +793,17 @@ int Cmbap::map_dat2reg(u16 reg[0xFFFF+1]
 //for (i=0;i<MAXMETER;i++) {//(复制所有变量)
 		base = (i<<8);     //高字节表示表号,分辨各个不同的表,范围[0,MAXMETER]
 		sub = 0;				//子域,某个表的特定参数
-#if DEBUG_REG_MAP
+#if DP_REG_MAP
 		                //分时电量 包含总电量 4*5=20
 		                printf("m_iTOU start at line: %d sub=0x%X(%d)\n",__LINE__,sub,sub);
 #endif
 		for (j = 0; j<TOUNUM; j++) {
-#if DEBUG_REG_MAP
+#if DP_REG_MAP
 			printf("tatil:: meter[i].Flag_TOU=%X\n",meter[i].Flag_TOU);
 #endif
 			//tou = 0x000F FFFF 2bit 1:ok 0: not sampel
 			bit = (meter[i].Flag_TOU&(0x1<<j))>>j;
-#if DEBUG_REG_MAP
+#if DP_REG_MAP
 			printf("bit[%d]=%x\n",j,bit);
 #endif
 			if (bit!=1) {     // cheak if dat is legel . per bit mean one of zong/jian/fen/ping/gu
@@ -829,7 +827,7 @@ int Cmbap::map_dat2reg(u16 reg[0xFFFF+1]
 			}
 			//printf("meter[%d].m_iTOU[%d]=%f sub=%d \n",i,j,meter[i].m_iTOU[j],sub);
 		}
-#if DEBUG_REG_MAP
+#if DP_REG_MAP
 		//象限无功电能 4*5=20
 		printf("m_iQR start at line: %d sub=0x%X(%d)\n",__LINE__,sub,sub);
 #endif
@@ -856,7 +854,7 @@ int Cmbap::map_dat2reg(u16 reg[0xFFFF+1]
 			}
 			//printf("meter[%d].m_iQR[%d]=%f sub=%d \n",i,j,meter[i].m_iQR[j],sub);
 		}
-#if DEBUG_REG_MAP
+#if DP_REG_MAP
 		//最大需量 2*2*5=20
 		printf("m_iMaxN start at line: %d sub=0x%X(%d)\n",__LINE__,sub,sub);
 #endif
@@ -869,7 +867,7 @@ int Cmbap::map_dat2reg(u16 reg[0xFFFF+1]
 			sub++;
 			//printf("meter[%d].m_iMaxN[%d]=%f sub=%d \n",i,j,meter[i].m_iMaxN[j],sub);
 		}
-#if DEBUG_REG_MAP
+#if DP_REG_MAP
 		//瞬时量 3+3
 		printf("Voltage start at line: %d sub=0x%X(%d)\n",__LINE__,sub,sub);
 #endif
@@ -880,7 +878,7 @@ int Cmbap::map_dat2reg(u16 reg[0xFFFF+1]
 			sub++;
 			//printf("meter[%d].m_wU[%d]=%f sub=%d \n",i,j,meter[i].m_wU[j],sub);
 		}
-#if DEBUG_REG_MAP
+#if DP_REG_MAP
 		printf("Current start at line: %d sub=0x%X(%d)\n",__LINE__,sub,sub);
 #endif
 		for (j = 0; j<PHASENUM; j++) {     //电流abc
@@ -890,7 +888,7 @@ int Cmbap::map_dat2reg(u16 reg[0xFFFF+1]
 			sub++;
 			//printf("meter[%d].m_wI[%d]=%f sub=%d \n",i,j,meter[i].m_wI[j],sub);
 		}
-#if DEBUG_REG_MAP
+#if DP_REG_MAP
 		//有功 /无功 /功率因数|总,a,b,c
 		printf("m_iP start at line: %d sub=0x%X(%d)\n",__LINE__,sub,sub);
 #endif
@@ -901,7 +899,7 @@ int Cmbap::map_dat2reg(u16 reg[0xFFFF+1]
 			sub++;
 			//printf("meter[%d].m_iP[%d]=%f sub=%d \n",i,j,meter[i].m_iP[j],sub);
 		}
-#if DEBUG_REG_MAP
+#if DP_REG_MAP
 		printf("m_wQ start at line: %d sub=0x%X(%d)\n",__LINE__,sub,sub);
 #endif
 		for (j = 0; j<PQCNUM; j++) {     //无功
@@ -911,7 +909,7 @@ int Cmbap::map_dat2reg(u16 reg[0xFFFF+1]
 			sub++;
 			//printf("meter[%d].m_wQ[%d]=%f\n",i,j,meter[i].m_wQ[j]);
 		}
-#if DEBUG_REG_MAP
+#if DP_REG_MAP
 		printf("m_wPF start at line: %d sub=0x%X(%d)\n",__LINE__,sub,sub);
 #endif
 		for (j = 0; j<PQCNUM; j++) {     //功率因数
@@ -921,7 +919,7 @@ int Cmbap::map_dat2reg(u16 reg[0xFFFF+1]
 			sub++;
 			//printf("meter[%d].m_wPF[%d]=%f\n",i,j,meter[i].m_wPF[j]);
 		}
-#if DEBUG_REG_MAP
+#if DP_REG_MAP
 		printf("m_wPF start at line: %d sub=0x%X(%d)\n",__LINE__,sub,sub);
 #endif
 		for (j = 0; j<4; j++) {     //保留4个32位寄存器,备用
@@ -932,7 +930,7 @@ int Cmbap::map_dat2reg(u16 reg[0xFFFF+1]
 			//printf("0xFFFFFFFF=%x %x \n",reg[base+sub-1],reg[base+sub]);
 		}
 		//断相记录 4(abc总)*2(次数,时间)
-#if DEBUG_REG_MAP
+#if DP_REG_MAP
 		printf("m_wPBCountstart at  line: %d sub=0x%X(%d)\n",__LINE__,sub,sub);
 #endif
 		for (j = 0; j<PQCNUM; j++) {     //
@@ -947,7 +945,7 @@ int Cmbap::map_dat2reg(u16 reg[0xFFFF+1]
 			//printf("meter[%d].m_wPBCount[%d]=%d sub=%d \n",i,j,meter[i].m_wPBCount[j],sub);
 		}
 		//断相总时间
-#if DEBUG_REG_MAP
+#if DP_REG_MAP
 		printf("m_iPBTotalTime start at line: %d sub=0x%X(%d)\n",__LINE__,sub,sub);
 #endif
 		for (j = 0; j<PQCNUM; j++) {     //
@@ -993,7 +991,7 @@ int Cmbap::map_dat2reg(u16 reg[0xFFFF+1]
 		 ,meter[i].m_time[6],0);
 		 */
 	}     //end for
-#if DEBUG_REG_MAP
+#if DP_REG_MAP
 	printf("bytes of one loop ,endline: %d sub=0x%X\n",__LINE__,sub);
 #endif
 	return 0;
