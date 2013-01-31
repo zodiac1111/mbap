@@ -1,4 +1,4 @@
-参考报文
+参考报文{#example-msg}
 =======
 
 `Reci form master`表示终端接收来自主站的报文.
