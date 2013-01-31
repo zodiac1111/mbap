@@ -1,7 +1,7 @@
 # swp #
 *.sw[op]
 *~
-
+html/*
 #qt项目配置文件
 *.user
 

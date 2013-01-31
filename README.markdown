@@ -1,14 +1,21 @@
 使用说明 {#mainpage}
 =======
+##生成/查看帮助文档
+
+在x86结构Linux操作系统下使用文档生成软件`doxygen`生成软件帮助手册:
+
+	doxygen
+
+在`html`目录下得到`html/index.html`文件.使用浏览器打开.
 
 ##编译
 
-在x86结构Linux操作系统下使用交叉编译工具链arm-linux-gcc编译.需要make工具集.
+在x86结构Linux操作系统下使用交叉编译工具链`arm-linux-gcc`编译.需要make工具集.
 在本软件根目录下执行:
 
 	make rootdir=<DIR>
 
-其中`<DIR>`表示hl3104源代码根目录.其中应包含`<DIR>/include`头文件目录和`<DIR>/lib`arm版本的`libsys_utl.so`库文件.
+其中 `<DIR>` 表示hl3104源代码根目录.其中应包含 `<DIR>/include` 头文件目录和 `<DIR>/lib` arm版本的 `libsys_utl.so` 库文件.
 
 当前`rootdir`默认的路径为`/home/lee/test/hl3104`.也可以在`Makefile`文件中手动修改.
 
@@ -42,7 +49,7 @@ make-reg-map是辅助快速生成OPC服务器的配置文件.OPC服务器的读�
 ###关于终端地址
 modbus/TCP 终端(从站)地址应设置为255,因为本协议不依靠终端地址寻址,而是通过IP地址寻址.所以终端地址这个量理论上是无用的.但是为了在同时具有modbus/TCP和modbus/串口的网络中不至于与串口的终端地址冲突.所以使用255为终端地址.基于串口的modbus总线协议应当忽略终端地址位255的报文.另,在仅有modbus/TCP的网络中.从站地址为0也是可以被接受的.但是为了以后扩展的考虑,本规约库实现均**必须且只能**指定终端(从站)地址为**255**.
 
-#分类说明:
+##分类说明
 * 现场安装调试人员查看:`doc/README.site.md`.
 * 规约库(终端)开发人员查看: `doc/README.protocol-dev.md`.
 * 主站规约开发人员查看: `doc/README.master-dev.md`.

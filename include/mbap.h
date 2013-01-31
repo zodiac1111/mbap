@@ -2,14 +2,14 @@
 	modbus的寄存器为16位,且按先高字节 后低字节传输
 	对于多于16位的数据类型如 int float,后2字节在前.
 	注意数据格式,寄存器格式,传输顺序,
-#缩略语:
+缩略语:
 	* ADU Application Data Unit
 	* IP Internet Protocol
 	* MB MODBUS
 	* MBAP MODBUS Application Protocol
 	* PDU Protocol Data Unit
 	* TCP Transport Control Protocol
-#参考文档:
+参考文档:
 	1. refer: modbus/TCP http://www.simplymodbus.ca/TCP.htm
 	2. http://www.electroind.com/pdf/Modbus_messaging_on_TCPIP_implementation_guide_V11.pdf
 	3. http://www.modbus.org/docs/Modbus_Application_Protocol_V1_1b.pdf (官网)

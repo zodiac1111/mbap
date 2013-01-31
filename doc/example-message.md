@@ -1,8 +1,11 @@
-#参考报文
+参考报文
+=======
 
 `Reci form master`表示终端接收来自主站的报文.
 
 `Send  to  master`表示终端发送给主站的报文.
+
+##示例
 
 	1. [libmbap]<<< Reci form master:{32 C4|00 00|00 06|FF}(03|0E 20|00 08)
 
