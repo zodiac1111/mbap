@@ -4,7 +4,7 @@
 
 #需要的头文件和库目录
 rootdir= /home/lee/test/hl3104
-#build目录,编译的东西将会在这里生成
+#build目录,编译的所有东西将会在这里生成
 builddir= lib
 indir	= $(rootdir)/include
 INCS	= -I./include -I$(indir)

@@ -1,7 +1,7 @@
 使用说明 {#mainpage}
 =======
 
-#编译
+##编译
 
 在x86结构Linux操作系统下使用交叉编译工具链arm-linux-gcc编译.需要make工具集.
 在本软件根目录下执行:
@@ -10,8 +10,27 @@
 
 其中`<DIR>`表示hl3104源代码根目录.其中应包含`<DIR>/include`头文件目录和`<DIR>/lib`arm版本的`libsys_utl.so`库文件.
 
-当前`rootdir`默认的路径为`/home/lee/test/hl3104`.也可以
+当前`rootdir`默认的路径为`/home/lee/test/hl3104`.也可以在`Makefile`文件中手动修改.
 
+完成后将在`lib`目录下得到一个`libmbap.so`库文件.
+
+##安装
+
+###上传规约文件
+将`libmbap.so`库文件通过ftp软件或者其他方式上传到采集终端的`/mnt/nor/lib`目录下.
+
+###配置规约
+修改终端`/mnt/nor/conf/protocol_config.txt`文件.在其末尾添加一行:
+
+	mbap 1 mbap Cproto_Cmbap
+
+###修改终端配置
+将终端地址设置为**255**.
+
+###重启终端
+重启终端令配置生效.
+
+##其他说明
 仅部分实现了协议所规定的0x03功能码,
 仅实现保持寄存器的读操作,其他例如写输入寄存器,线圈等均没有实现.
 
@@ -35,30 +54,8 @@ modbus/TCP 终端(从站)地址应设置为255,因为本协议不依靠终端地
 4. modbus/TCP 报文实现官方指导手册 <http://www.modbus.org/docs/Modbus_Messaging_Implementation_Guide_V1_0b.pdf>
 5. modbus官方说明书: <http://www.modbus.org/specs.php> 
 6. 从Modbus到透明就绪  第8章
-7. IEEE 754 float 格式,在线转换 <http://babbage.cs.qc.cuny.edu/IEEE-754/>
+7. IEEE 754 float 格式,在线转换 <http://babbage.cs.qc.cuny.edu/IEEE-754/> 或者 <http://www.binaryconvert.com/convert_float.html>
 8. 维基百科:<http://en.wikipedia.org/wiki/Modbus>
 9. 维基百科中文: <http://zh.wikipedia.org/wiki/Modbus>
-
-##参考报文
-
-	[libmbap]<<< Reci form master:{32 C4|00 00|00 06|FF}(03|0E 20|00 08)
-
-	[libmbap]>>> Send  to  master:{32 C4|00 00|00 13|FF}(03|10)[00 00 BF 80 00 00 BF 80 00 00 BF 80 00 00 BF 80]
-
-	[libmbap]<<< Reci form master:{32 C5|00 00|00 06|FF}(03|0F 00|00 20)
-
-	[libmbap]>>> Send  to  master:{32 C5|00 00|00 43|FF}(03|40)[00 00 BF 80 00 00 BF 80 00 00 BF 80 00 00 BF 80 00 00 BF 80 00 00 BF 80 00 00 BF 80 00 00 BF 80 00 00 BF 80 00 00 BF 80 00 00 BF 80 00 00 BF 80 00 00 BF 80 00 00 BF 80 00 00 BF 80 00 00 BF 80]
-
-	[libmbap]<<< Reci form master:{32 C6|00 00|00 06|FF}(03|0F 20|00 08)
-
-	[libmbap]>>> Send  to  master:{32 C6|00 00|00 13|FF}(03|10)[00 00 BF 80 00 00 BF 80 00 00 BF 80 00 00 BF 80]
-
-	[libmbap]<<< Reci form master:{32 C7|00 00|00 06|FF}(03|10 00|00 20)
-
-	[libmbap]>>> Send  to  master:{32 C7|00 00|00 43|FF}(03|40)[C5 1F 43 82 C3 D7 43 82 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00]
-
-	[libmbap]<<< Reci form master:{32 C8|00 00|00 06|FF}(03|10 20|00 08)
-
-	[libmbap]>>> Send  to  master:{32 C8|00 00|00 13|FF}(03|10)[00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00]
 
 
