@@ -1,5 +1,16 @@
-使用说明 @mainpage
+使用说明 {#mainpage}
 =======
+
+#编译
+
+在x86结构Linux操作系统下使用交叉编译工具链arm-linux-gcc编译.需要make工具集.
+在本软件根目录下执行:
+
+	make rootdir=<DIR>
+
+其中`<DIR>`表示hl3104源代码根目录.其中应包含`<DIR>/include`头文件目录和`<DIR>/lib`arm版本的`libsys_utl.so`库文件.
+
+当前`rootdir`默认的路径为`/home/lee/test/hl3104`.也可以
 
 仅部分实现了协议所规定的0x03功能码,
 仅实现保持寄存器的读操作,其他例如写输入寄存器,线圈等均没有实现.
