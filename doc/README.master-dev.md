@@ -1,4 +1,4 @@
-主站开发人员说明{#master-dev}
+主站开发人员说明 {#master-dev}
 =============
 
 modbus/TCP协议文本说明书见官网:<http://www.modbus.org/specs.php>.
