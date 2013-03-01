@@ -9,13 +9,14 @@
 #include <time.h>
 #include <iostream>
 #include <malloc.h>
+#include <stdio.h>
 #include "define.h"
 #include "loopbuf.h"
 #include "sys_utl.h"
 #include "log.h"
 #include "mbap.h"
 #include "metershm.h"
-#include <stdio.h>
+#include "color.h"
 extern "C" CProtocol *CreateCProto_Cmbap(void)
 {
 	return new Cmbap;
@@ -679,7 +680,9 @@ inline void Cmbap::d2r(u16 reg[1]
 ///打印 mbap 头信息
 void Cmbap::print_mbap(const struct mbap_head mbap) const
         {
-	printf("{%02X %02X|%02X %02X|%02X %02X|%02X}"
+	printf("{"BLUE"%02X %02X"_COLOR"|%02X %02X|"
+			GREEN"%02X %02X"_COLOR"|"
+			RED"%02X"_COLOR"}"
 	                , mbap.TransID_hi, mbap.TransID_lo     //事务处理
 	                ,
 	                mbap.protocolhead_hi,
@@ -694,7 +697,7 @@ void Cmbap::print_mbap(const struct mbap_head mbap) const
 ///打印请求pdu
 inline void Cmbap::print_req_pdu(const struct mb_read_req_pdu request_pdu) const
         {
-	printf("(%02X|%02X %02X|%02X %02X)"
+	printf("("YELLOW"%02X"_COLOR"|%02X %02X|%02X %02X)"
 	                , request_pdu.func_code
 	                , request_pdu.start_addr_hi
 	                , request_pdu.start_addr_lo
@@ -706,7 +709,8 @@ inline void Cmbap::print_req_pdu(const struct mb_read_req_pdu request_pdu) const
 inline void Cmbap::print_req_pdu(
         const struct mb_write_req_pdu request_pdu) const
         {
-	printf("(%02X|%02X %02X|%02X %02X|%02X)"
+	printf("("YELLOW"%02X"_COLOR"|%02X %02X|"
+			GREEN"%02X %02X"_COLOR"|"GREEN"%02X"_COLOR")"
 	                , request_pdu.func_code
 	                , request_pdu.start_addr_hi
 	                , request_pdu.start_addr_lo
@@ -719,7 +723,7 @@ inline void Cmbap::print_req_pdu(
 inline void Cmbap::print_rsp_pdu(
         const struct mb_excep_rsp_pdu excep_respond_pdu) const
         {
-	printf("(ERR:%02X|%02X)"
+	printf("("RED FLASH "ERR"_COLOR":%02X|%02X)"
 	                , excep_respond_pdu.exception_func_code
 	                , excep_respond_pdu.exception_code);
 	fflush(stdout);
@@ -728,7 +732,7 @@ inline void Cmbap::print_rsp_pdu(
 inline void Cmbap::print_rsp_pdu(const struct mb_read_rsp_pdu respond_pdu)
         const
         {
-	printf("(%02X|%02X)"
+	printf("("YELLOW"%02X"_COLOR"|"GREEN"%02X"_COLOR")"
 	                , respond_pdu.func_code
 	                , respond_pdu.byte_count);
 	fflush(stdout);
@@ -737,7 +741,7 @@ inline void Cmbap::print_rsp_pdu(const struct mb_read_rsp_pdu respond_pdu)
 inline void Cmbap::print_rsp_pdu(const struct mb_write_rsp_pdu respond_pdu)
         const
         {
-	printf("(%02X|%02X %02X|%02X %02X)"
+	printf("("YELLOW"%02X"_COLOR"|%02X %02X|"GREEN"%02X %02X"_COLOR")"
 	                , respond_pdu.func_code
 	                , respond_pdu.start_addr_hi
 	                , respond_pdu.start_addr_lo
